@@ -8,7 +8,11 @@ import type {
 
 // ─── Shipments ────────────────────────────────────────────────────────────────
 export const shipmentsService = {
-  async list(params?: ListParams & { status?: string }): Promise<PaginatedResponse<Shipment>> {
+  async list(params?: ListParams & {
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<PaginatedResponse<Shipment>> {
     const { data } = await api.get<PaginatedResponse<Shipment>>('/shipments', { params });
     return data;
   },
@@ -45,7 +49,12 @@ export const shipmentsService = {
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 export const ordersService = {
-  async list(params?: ListParams & { status?: OrderStatus }): Promise<PaginatedResponse<Order>> {
+  async list(params?: ListParams & {
+    status?: OrderStatus;
+    userName?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<PaginatedResponse<Order>> {
     const { data } = await api.get<PaginatedResponse<Order>>('/orders', { params });
     return data;
   },

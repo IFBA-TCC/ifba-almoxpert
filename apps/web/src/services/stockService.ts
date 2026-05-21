@@ -2,12 +2,12 @@ import { api } from './api';
 import type { StockEntry, PaginatedResponse, ListParams } from '../types';
 
 export const stockService = {
-  async list(params?: ListParams & { itemId?: number; variationId?: number }): Promise<PaginatedResponse<StockEntry>> {
+  async list(params?: ListParams & { itemId?: number; variationId?: number; itemName?: string }): Promise<PaginatedResponse<StockEntry>> {
     const { data } = await api.get<PaginatedResponse<StockEntry>>('/stock', { params });
     return data;
   },
 
-  async listLow(params?: ListParams): Promise<PaginatedResponse<StockEntry>> {
+  async listLow(params?: ListParams & { itemName?: string }): Promise<PaginatedResponse<StockEntry>> {
     const { data } = await api.get<PaginatedResponse<StockEntry>>('/stock/low', { params });
     return data;
   },

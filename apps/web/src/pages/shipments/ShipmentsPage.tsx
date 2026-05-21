@@ -9,6 +9,7 @@ import { Table } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import { Pagination } from '../../components/ui/Pagination';
 import { Modal, ConfirmModal } from '../../components/ui/Modal';
+import { FilterBar, type FilterFieldDef } from '../../components/ui/FilterBar';
 import { Select, Input, Textarea } from '../../components/ui/FormFields';
 import { shipmentsService } from '../../services/index';
 import { itemsService } from '../../services/itemsService';
@@ -28,6 +29,18 @@ function getSizeOptions(item?: Item) {
 type OutletCtx = { onMenuClick: () => void };
 type FormLine  = { itemId: string; variationId: string; size: string; quantity: number };
 type FormData  = { notes: string; items: FormLine[] };
+
+interface ShipmentFilters { status: string; dateFrom: string; dateTo: string; }
+const defaultShipmentFilters: ShipmentFilters = { status: '', dateFrom: '', dateTo: '' };
+const shipmentFilterFields: FilterFieldDef[] = [
+  { key: 'status',   label: 'Status',      type: 'select', placeholder: 'Todos os status', options: [
+    { value: 'open',      label: 'Aberta' },
+    { value: 'completed', label: 'Concluída' },
+    { value: 'cancelled', label: 'Cancelada' },
+  ]},
+  { key: 'dateFrom', label: 'A partir de', type: 'date' },
+  { key: 'dateTo',   label: 'Até',         type: 'date' },
+];
 
 const EMPTY_LINE: FormLine = { itemId: '', variationId: '', size: '', quantity: 1 };
 
@@ -186,16 +199,23 @@ export const ShipmentsPage: React.FC = () => {
   const toast = useToast();
   const qc    = useQueryClient();
 
-  const [page, setPage]                   = useState(1);
-  const [viewShipment, setView]           = useState<Shipment | null>(null);
-  const [createOpen, setCreate]           = useState(false);
-  const [editShipment, setEditOpen]       = useState<Shipment | null>(null);
-  const [deleteShipment, setDeleteOpen]   = useState<Shipment | null>(null);
+  const [page, setPage]                     = useState(1);
+  const [filters, setFilters]               = useState<ShipmentFilters>(defaultShipmentFilters);
+  const [viewShipment, setView]             = useState<Shipment | null>(null);
+  const [createOpen, setCreate]             = useState(false);
+  const [editShipment, setEditOpen]         = useState<Shipment | null>(null);
+  const [deleteShipment, setDeleteOpen]     = useState<Shipment | null>(null);
   const [completeShipment, setCompleteOpen] = useState<Shipment | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['shipments', page],
-    queryFn: () => shipmentsService.list({ pageIndex: page - 1, pageSize: 10 }),
+    queryKey: ['shipments', page, filters],
+    queryFn: () => shipmentsService.list({
+      pageIndex: page - 1,
+      pageSize:  10,
+      status:    filters.status   || undefined,
+      dateFrom:  filters.dateFrom || undefined,
+      dateTo:    filters.dateTo   || undefined,
+    }),
   });
 
   const { data: itemsData } = useQuery({
@@ -364,6 +384,13 @@ export const ShipmentsPage: React.FC = () => {
 
       <div className="p-4 sm:p-6 animate-fade-in">
         <div className="card">
+          <FilterBar
+            filters={filters}
+            defaults={defaultShipmentFilters}
+            fields={shipmentFilterFields}
+            onChange={(f) => { setFilters(f); setPage(1); }}
+          />
+
           <Table
             columns={columns}
             data={data?.data ?? []}

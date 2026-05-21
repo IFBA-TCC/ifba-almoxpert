@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Pagination } from '../../components/ui/Pagination';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { FilterBar, type FilterFieldDef } from '../../components/ui/FilterBar';
 import { Select, Input } from '../../components/ui/FormFields';
 import { ordersService } from '../../services/index';
 import { itemsService } from '../../services/itemsService';
@@ -29,6 +30,14 @@ function getSizeOptions(item?: Item) {
 
 type OutletCtx = { onMenuClick: () => void };
 
+interface OrderFilters { userName: string; dateFrom: string; dateTo: string; }
+const defaultOrderFilters: OrderFilters = { userName: '', dateFrom: '', dateTo: '' };
+const orderFilterFields: FilterFieldDef[] = [
+  { key: 'userName', label: 'Solicitante', type: 'text', placeholder: 'Buscar por solicitante...' },
+  { key: 'dateFrom', label: 'A partir de', type: 'date' },
+  { key: 'dateTo',   label: 'Até',         type: 'date' },
+];
+
 const statusTabs: { label: string; value: OrderStatus | 'all' }[] = [
   { label: 'Todos',    value: 'all' },
   { label: 'Pendente', value: 'pending' },
@@ -46,15 +55,23 @@ export const OrdersPage: React.FC = () => {
   const toast = useToast();
   const qc = useQueryClient();
 
-  const [page, setPage]               = useState(1);
-  const [status, setStatus]           = useState<OrderStatus | 'all'>('all');
-  const [viewOrder, setViewOrder]     = useState<Order | null>(null);
-  const [createOpen, setCreateOpen]   = useState(false);
+  const [page, setPage]                = useState(1);
+  const [status, setStatus]            = useState<OrderStatus | 'all'>('all');
+  const [filters, setFilters]          = useState<OrderFilters>(defaultOrderFilters);
+  const [viewOrder, setViewOrder]      = useState<Order | null>(null);
+  const [createOpen, setCreateOpen]    = useState(false);
   const [deliverOrder, setDeliverOpen] = useState<Order | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['orders', page, status],
-    queryFn: () => ordersService.list({ pageIndex: page - 1, pageSize: 10, status: status === 'all' ? undefined : status }),
+    queryKey: ['orders', page, status, filters],
+    queryFn: () => ordersService.list({
+      pageIndex: page - 1,
+      pageSize:  10,
+      status:    status === 'all' ? undefined : status,
+      userName:  filters.userName  || undefined,
+      dateFrom:  filters.dateFrom  || undefined,
+      dateTo:    filters.dateTo    || undefined,
+    }),
   });
 
   const { data: itemsData } = useQuery({
@@ -160,6 +177,13 @@ export const OrdersPage: React.FC = () => {
               </button>
             ))}
           </div>
+
+          <FilterBar
+            filters={filters}
+            defaults={defaultOrderFilters}
+            fields={orderFilterFields}
+            onChange={(f) => { setFilters(f); setPage(1); }}
+          />
 
           <Table
             columns={columns}

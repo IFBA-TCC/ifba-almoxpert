@@ -8,12 +8,19 @@ import { Table } from '../../components/ui/Table';
 import { Badge } from '../../components/ui/Badge';
 import { Pagination } from '../../components/ui/Pagination';
 import { Modal } from '../../components/ui/Modal';
+import { FilterBar, type FilterFieldDef } from '../../components/ui/FilterBar';
 import { Input } from '../../components/ui/FormFields';
 import { Button } from '../../components/ui/Button';
 import { stockService } from '../../services/stockService';
 import { useToast } from '../../components/ui/Toast';
 import { useAuthStore } from '../../store/authStore';
 import type { StockEntry } from '../../types';
+
+interface StockFilters { itemName: string; }
+const defaultStockFilters: StockFilters = { itemName: '' };
+const stockFilterFields: FilterFieldDef[] = [
+  { key: 'itemName', label: 'Item', type: 'text', placeholder: 'Buscar por item...' },
+];
 
 const unitLabel: Record<string, string> = {
   unit: 'un.', box: 'cx.', package: 'pct.', ream: 'rsm.', kit: 'kit', pair: 'par', sheet: 'flh.',
@@ -30,13 +37,15 @@ export const StockPage: React.FC = () => {
 
   const [page, setPage]             = useState(1);
   const [lowOnly, setLowOnly]       = useState(false);
+  const [filters, setFilters]       = useState<StockFilters>(defaultStockFilters);
   const [editEntry, setEditEntry]   = useState<StockEntry | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['stock', page, lowOnly],
-    queryFn: () => lowOnly
-      ? stockService.listLow({ pageIndex: page - 1, pageSize: 15 })
-      : stockService.list({ pageIndex: page - 1, pageSize: 15 }),
+    queryKey: ['stock', page, lowOnly, filters],
+    queryFn: () => {
+      const params = { pageIndex: page - 1, pageSize: 15, itemName: filters.itemName || undefined };
+      return lowOnly ? stockService.listLow(params) : stockService.list(params);
+    },
   });
 
   const { register, handleSubmit, reset } = useForm<{ minimum: number }>();
@@ -123,7 +132,7 @@ export const StockPage: React.FC = () => {
 
       <div className="p-4 sm:p-6 animate-fade-in">
         <div className="card">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
             <button
               onClick={() => { setLowOnly(false); setPage(1); }}
               className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${!lowOnly ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
@@ -137,6 +146,13 @@ export const StockPage: React.FC = () => {
               <AlertTriangle size={12} /> Estoque Baixo
             </button>
           </div>
+
+          <FilterBar
+            filters={filters}
+            defaults={defaultStockFilters}
+            fields={stockFilterFields}
+            onChange={(f) => { setFilters(f); setPage(1); }}
+          />
 
           <Table
             columns={columns}
