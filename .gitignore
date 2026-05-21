@@ -89,8 +89,8 @@ test-results/
 
 # ──────────────────────────────────────────────────────────────
 # Banco de dados local (arquivos gerados, não o schema SQL)
-# Os arquivos .sql em /database/ SÃO versionados (schema e migrations)
 # ──────────────────────────────────────────────────────────────
+database/
 *.db
 *.sqlite
 *.sqlite3
