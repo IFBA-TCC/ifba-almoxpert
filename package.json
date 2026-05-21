@@ -1,0 +1,18 @@
+{
+  "name": "almoxpert",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspace @almoxpert/api dev",
+    "dev:web": "yarn workspace @almoxpert/web dev",
+    "dev:all": "concurrently \"yarn dev\" \"yarn dev:web\"",
+    "build": "yarn workspace @almoxpert/api build",
+    "build:web": "yarn workspace @almoxpert/web build",
+    "start": "yarn workspace @almoxpert/api start:prod"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
