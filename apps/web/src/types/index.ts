@@ -236,6 +236,7 @@ export interface OrderLineDto {
 }
 
 export interface CreateOrderDto {
+  userId?: number;
   items: OrderLineDto[];
 }
 
@@ -244,10 +245,18 @@ export interface ReviewItemDto {
   approvedQuantity: number;
 }
 
+export interface NewOrderItemDto {
+  itemId: number;
+  variationId?: number;
+  size?: string;
+  approvedQuantity: number;
+}
+
 export interface ReviewOrderDto {
   status: 'approved' | 'rejected';
   adminNotes?: string;
   items?: ReviewItemDto[];
+  newItems?: NewOrderItemDto[];
 }
 
 // ─── Movement ────────────────────────────────────────────────────────────────

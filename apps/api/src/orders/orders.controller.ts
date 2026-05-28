@@ -78,10 +78,10 @@ export class OrdersController {
   }
 
   @Post()
-  @Roles(UserType.STUDENT)
+  @Roles(UserType.STUDENT, UserType.ADMIN)
   @ApiOperation({
     summary: 'Criar pedido',
-    description: 'Estudante solicita materiais do almoxarifado. O pedido fica com status "pending" até análise do admin. Acesso: estudante.',
+    description: 'Estudante solicita materiais do almoxarifado. Admin pode criar em nome de um aluno informando userId no body. O pedido fica com status "pending" até análise do admin.',
   })
   @ApiResponse({ status: 201, description: 'Pedido criado com sucesso.' })
   create(

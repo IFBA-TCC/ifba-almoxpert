@@ -108,10 +108,11 @@ export class OrdersService {
     return order;
   }
 
-  /** Students place orders */
-  async create(dto: CreateOrderDto, userId: number) {
+  /** Students or admin (on behalf of a student) place orders */
+  async create(dto: CreateOrderDto, requestingUserId: number) {
+    const targetUserId = dto.userId ? Number(dto.userId) : requestingUserId;
     const order = await this.ordersRepo.save(
-      this.ordersRepo.create({ userId }),
+      this.ordersRepo.create({ userId: targetUserId }),
     );
 
     for (const line of dto.items) {
@@ -154,22 +155,37 @@ export class OrdersService {
 
     if (dto.status === OrderStatus.APPROVED) {
       for (const reviewLine of dto.items ?? []) {
-        const orderItem = order.items.find((oi) => oi.id === reviewLine.orderItemId);
+        const orderItem = order.items.find((oi) => Number(oi.id) === Number(reviewLine.orderItemId));
         if (orderItem) {
           orderItem.approvedQuantity = reviewLine.approvedQuantity;
           await this.orderItemsRepo.save(orderItem);
         }
+      }
+
+      for (const newLine of dto.newItems ?? []) {
+        await this.orderItemsRepo.save(
+          this.orderItemsRepo.create({
+            orderId:           Number(order.id),
+            itemId:            Number(newLine.itemId),
+            variationId:       newLine.variationId ? Number(newLine.variationId) : null,
+            size:              newLine.size ?? 'none',
+            requestedQuantity: 0,
+            approvedQuantity:  newLine.approvedQuantity,
+          }),
+        );
       }
     }
 
     const saved = await this.ordersRepo.save(order);
 
     if (order.user?.receiveEmails) {
-      const hasChanges = dto.status === OrderStatus.APPROVED &&
+      const hasChanges = dto.status === OrderStatus.APPROVED && (
+        (dto.newItems?.length ?? 0) > 0 ||
         order.items.some((oi) => {
           const reviewLine = dto.items?.find((r) => r.orderItemId === oi.id);
           return reviewLine && reviewLine.approvedQuantity !== oi.requestedQuantity;
-        });
+        })
+      );
 
       const emailStatus: OrderReviewStatus =
         dto.status === OrderStatus.REJECTED
@@ -178,11 +194,20 @@ export class OrdersService {
           ? 'approved_with_changes'
           : 'approved';
 
-      const emailItems: OrderReviewItem[] = order.items.map((oi) => ({
+      const existingEmailItems: OrderReviewItem[] = order.items.map((oi) => ({
         name:              oi.item?.name ?? `Item #${oi.itemId}`,
         requestedQuantity: oi.requestedQuantity,
         approvedQuantity:  oi.approvedQuantity ?? null,
       }));
+
+      const newEmailItems: OrderReviewItem[] = (dto.newItems ?? []).map((n) => ({
+        name:              `Item #${n.itemId}`,
+        requestedQuantity: 0,
+        approvedQuantity:  n.approvedQuantity,
+        isNew:             true,
+      }));
+
+      const emailItems: OrderReviewItem[] = [...existingEmailItems, ...newEmailItems];
 
       this.emailService
         .sendOrderReview(order.user.email, order.user.name, order.id, emailStatus, emailItems, dto.adminNotes)
@@ -196,7 +221,7 @@ export class OrdersService {
   async deliver(id: number) {
     const order = await this.ordersRepo.findOne({
       where: { id },
-      relations: ['items'],
+      relations: ['items', 'items.item', 'user'],
     });
 
     if (!order) throw new NotFoundException(`Order #${id} not found`);
@@ -205,8 +230,10 @@ export class OrdersService {
     }
 
     for (const line of order.items) {
+      const qty = line.approvedQuantity ?? 0;
+      if (qty <= 0) continue;
+
       const size = line.size ?? 'none';
-      const qty = line.approvedQuantity ?? line.requestedQuantity;
       await this.stockService.decreaseQuantity(line.itemId, line.variationId, size, qty);
       await this.movementsService.record({
         itemId:       line.itemId,
@@ -220,6 +247,23 @@ export class OrdersService {
     }
 
     order.status = OrderStatus.DELIVERED;
-    return this.ordersRepo.save(order);
+    const saved = await this.ordersRepo.save(order);
+
+    if (order.user?.receiveEmails) {
+      const emailItems: OrderReviewItem[] = order.items
+        .filter((line) => (line.approvedQuantity ?? 0) > 0)
+        .map((line) => ({
+          name:              line.item?.name ?? `Item #${line.itemId}`,
+          requestedQuantity: line.requestedQuantity,
+          approvedQuantity:  line.approvedQuantity,
+          isNew:             line.requestedQuantity === 0,
+        }));
+
+      this.emailService
+        .sendOrderDelivered(order.user.email, order.user.name, order.id, emailItems)
+        .catch(() => {/* fire and forget */});
+    }
+
+    return saved;
   }
 }
