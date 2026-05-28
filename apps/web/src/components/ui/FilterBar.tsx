@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, SlidersHorizontal, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { cn } from '../../utils';
+import { ComboBox } from './ComboBox';
 
 // ─── Tipos públicos ────────────────────────────────────────────────────────────
 export interface FilterFieldDef {
@@ -65,17 +66,13 @@ export function FilterBar<T extends Record<string, string>>({
 
     if (field.type === 'select') {
       return (
-        <select
+        <ComboBox
           key={field.key}
+          placeholder={field.placeholder ?? field.label}
+          options={field.options ?? []}
           value={value}
-          onChange={(e) => set(field.key, e.target.value)}
-          className="input w-full"
-        >
-          <option value="">{field.placeholder ?? field.label}</option>
-          {field.options?.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          onChange={(v) => set(field.key, v as string)}
+        />
       );
     }
 

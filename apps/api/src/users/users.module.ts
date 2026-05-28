@@ -6,9 +6,10 @@ import { UsersImportService } from './import/users-import.service';
 import { User } from './entities/user.entity';
 import { Student } from './entities/student.entity';
 import { Administrator } from './entities/administrator.entity';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Student, Administrator])],
+  imports: [TypeOrmModule.forFeature([User, Student, Administrator]), EmailModule],
   controllers: [UsersController],
   providers:   [UsersService, UsersImportService],
   exports:     [UsersService],

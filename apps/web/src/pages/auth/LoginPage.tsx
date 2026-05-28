@@ -30,15 +30,16 @@ export const LoginPage: React.FC = () => {
     try {
       const res = await authService.login({ email: data.email, password: data.password });
       const user = {
-        id:         res.user.id,
-        name:       res.user.name,
-        email:      res.user.email,
-        userType:  res.user.userType as 'admin' | 'student',
-        isActive:  true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        id:            res.user.id,
+        name:          res.user.name,
+        email:         res.user.email,
+        userType:      res.user.userType as 'admin' | 'student',
+        isActive:      true,
+        receiveEmails: true,
+        createdAt:     new Date().toISOString(),
+        updatedAt:     new Date().toISOString(),
       };
-      setAuth(res.accessToken, user, res.mustChangePassword);
+      setAuth(res.accessToken, user, res.mustChangePassword, res.mustAcceptTerms);
       navigate(res.mustChangePassword ? '/force-change-password' : '/dashboard');
     } catch {
       setApiError('E-mail ou senha incorretos.');

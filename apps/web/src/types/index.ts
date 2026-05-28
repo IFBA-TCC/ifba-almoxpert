@@ -17,28 +17,6 @@ export type StudentAid =
   | 'Auxílio Moradia (VC)'
   | 'Auxílio Transporte Intermunicipal (VC)';
 
-export type IntakeForm =
-  | 'SISU / AMPLA CONCORRÊNCIA'
-  | 'SISU / ESCOLAS PÚBLICAS'
-  | 'SISU / ESCOLAS PÚBLICAS / BAIXA RENDA'
-  | 'SISU / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS'
-  | 'SISU / ESCOLAS PÚBLICAS / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS'
-  | 'SISU / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS / PESSOAS COM DEFICIÊNCIA'
-  | 'SISU / ESCOLAS PÚBLICAS / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS / PESSOAS COM DEFICIÊNCIA'
-  | 'PROCESSO SELETIVO / AMPLA CONCORRÊNCIA'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / BAIXA RENDA'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS'
-  | 'PROCESSO SELETIVO / QUILOMBOLAS'
-  | 'PROCESSO SELETIVO / PESSOA COM DEFICIÊNCIA'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA / BAIXA RENDA'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS'
-  | 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS'
-  | 'PROCESSO SELETIVO PARA VAGAS REMANESCENTES / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS'
-  | 'PROGRAMA PEC-G';
-
 export type EducationLevel = 'Graduação' | 'Médio';
 export type StudentModality = 'Bacharelado' | 'Licenciatura' | 'Técnico Integrado' | 'Técnico Subsequente';
 
@@ -51,6 +29,7 @@ export interface User {
   email: string;
   userType: UserType;
   isActive: boolean;
+  receiveEmails: boolean;
   mustChangePassword?: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -66,10 +45,8 @@ export interface StudentProfile {
   campus: string | null;
   educationLevel: EducationLevel | null;
   modality: StudentModality | null;
-  intakeForms: IntakeForm[] | null;
   aids: StudentAid[] | null;
   mealTypes: string | null;
-  baremScore: number | null;
 }
 
 export interface AdminProfile {
@@ -88,10 +65,8 @@ export interface CreateUserDto {
   campus?: string;
   educationLevel?: EducationLevel;
   modality?: StudentModality;
-  intakeForms?: IntakeForm[];
   aids?: StudentAid[];
   mealTypes?: string;
-  baremScore?: number;
   position?: string;
 }
 
@@ -106,12 +81,11 @@ export interface UpdateUserDto {
   campus?: string;
   educationLevel?: EducationLevel;
   modality?: StudentModality;
-  intakeForms?: IntakeForm[];
   aids?: StudentAid[];
   mealTypes?: string;
-  baremScore?: number;
   position?: string;
   isActive?: boolean;
+  receiveEmails?: boolean;
 }
 
 // ─── Import ───────────────────────────────────────────────────────────────────

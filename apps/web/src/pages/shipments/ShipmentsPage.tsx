@@ -10,12 +10,21 @@ import { Badge } from '../../components/ui/Badge';
 import { Pagination } from '../../components/ui/Pagination';
 import { Modal, ConfirmModal } from '../../components/ui/Modal';
 import { FilterBar, type FilterFieldDef } from '../../components/ui/FilterBar';
-import { Select, Input, Textarea } from '../../components/ui/FormFields';
+import { Input, Textarea } from '../../components/ui/FormFields';
+import { ComboBox, type ComboBoxFetchParams } from '../../components/ui/ComboBox';
 import { shipmentsService } from '../../services/index';
-import { itemsService } from '../../services/itemsService';
+import { itemsService } from '../../services/index';
 import { useToast } from '../../components/ui/Toast';
 import { formatDateTime, shipmentStatusLabel, shipmentStatusColor } from '../../utils';
 import type { Shipment, Item } from '../../types';
+
+const itemsFetchFn = async ({ search, pageIndex, pageSize }: ComboBoxFetchParams) => {
+  const res = await itemsService.list({ name: search || undefined, pageIndex, pageSize, isActive: true });
+  return {
+    data: res.data.map((i) => ({ value: String(i.id), label: i.name, ...i })),
+    total: res.total,
+  };
+};
 
 const CLOTHING_SIZES = ['PP', 'P', 'M', 'G', 'GG', 'GGG'];
 const SHOE_SIZES = ['33','34','35','36','37','38','39','40','41','42','43','44','45'];
@@ -46,135 +55,157 @@ const EMPTY_LINE: FormLine = { itemId: '', variationId: '', size: '', quantity: 
 
 // ─── Shared: form linhas de remessa ──────────────────────────────────────────
 function ShipmentFormLines({
-  fields, register, control, watch, setValue, errors, remove, append, allItems,
+  fields, register, control, setValue, errors, remove, append, initialItems,
 }: {
-  fields:    ReturnType<typeof useFieldArray>['fields'];
-  register:  any;
-  control:   any;
-  watch:     any;
-  setValue:  any;
-  errors:    any;
-  remove:    (idx: number) => void;
-  append:    (v: FormLine) => void;
-  allItems:  Item[];
+  fields:       ReturnType<typeof useFieldArray>['fields'];
+  register:     any;
+  control:      any;
+  setValue:     any;
+  errors:       any;
+  remove:       (idx: number) => void;
+  append:       (v: FormLine) => void;
+  initialItems?: (Item | undefined)[];
 }) {
-  const watchedItems = watch('items');
+  const [selItems, setSelItems] = useState<(Item | undefined)[]>(initialItems ?? []);
+
+  useEffect(() => { setSelItems(initialItems ?? []); }, [initialItems]);
+
+  const handleSelect = (idx: number, id: string, item: Item | undefined) => {
+    setSelItems((prev) => { const next = [...prev]; next[idx] = item; return next; });
+    setValue(`items.${idx}.variationId`, '');
+    setValue(`items.${idx}.size`, '');
+  };
+
+  const handleRemove = (idx: number) => {
+    remove(idx);
+    setSelItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAppend = () => {
+    append({ ...EMPTY_LINE });
+    setSelItems((prev) => [...prev, undefined]);
+  };
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-2 px-0.5">
-        <p className="col-span-3 label mb-0">Item *</p>
+        <p className="col-span-4 label mb-0">Item *</p>
         <p className="col-span-3 label mb-0">Variação</p>
-        <p className="col-span-3 label mb-0">Tamanho</p>
+        <p className="col-span-2 label mb-0">Tamanho</p>
         <p className="col-span-2 label mb-0">Qtd. *</p>
         <div className="col-span-1" />
       </div>
 
       {fields.map((field, idx) => {
-        const selItemId   = watchedItems?.[idx]?.itemId;
-        const selItem     = allItems.find((it) => String(it.id) === selItemId);
+        const selItem     = selItems[idx];
         const sizeOptions = getSizeOptions(selItem);
         const lineErrors  = errors?.items?.[idx];
 
         return (
-          <div key={field.id}>
-            <div className="grid grid-cols-12 gap-2 items-start">
-              {/* Item */}
-              <div className="col-span-3">
+          <div key={field.id} className="grid grid-cols-12 gap-2 items-start">
+            {/* Item */}
+            <div className="col-span-4">
+              <Controller
+                name={`items.${idx}.itemId`}
+                control={control}
+                rules={{ required: 'Selecione um item' }}
+                render={({ field: f }) => (
+                  <ComboBox
+                    fetchFn={itemsFetchFn}
+                    queryKey={`shipment-item-${idx}`}
+                    value={f.value}
+                    error={lineErrors?.itemId?.message}
+                    initialOptions={
+                      initialItems?.[idx]
+                        ? [{ value: String(initialItems[idx]!.id), label: initialItems[idx]!.name }]
+                        : []
+                    }
+                    onChange={(id, option) => {
+                      f.onChange(id);
+                      handleSelect(idx, id, option ? (option as unknown as Item) : undefined);
+                    }}
+                  />
+                )}
+              />
+            </div>
+
+            {/* Variação */}
+            <div className="col-span-3">
+              {selItem?.hasVariations ? (
                 <Controller
-                  name={`items.${idx}.itemId`}
+                  name={`items.${idx}.variationId`}
                   control={control}
-                  rules={{ required: 'Selecione um item' }}
+                  rules={{ validate: (val: string) => (!selItem?.hasVariations || !!val) || 'Selecione' }}
                   render={({ field: f }) => (
-                    <Select
-                      options={allItems.map((it) => ({ value: String(it.id), label: it.name }))}
-                      placeholder="Selecione..."
+                    <ComboBox
+                      options={selItem.variations?.filter((v) => v.isActive).map((v) => ({
+                        value: String(v.id), label: v.description,
+                      })) ?? []}
                       value={f.value}
-                      error={lineErrors?.itemId?.message}
-                      onChange={(e) => {
-                        f.onChange(e);
-                        setValue(`items.${idx}.variationId`, '');
-                        setValue(`items.${idx}.size`, '');
-                      }}
+                      clearable={false}
+                      placeholder="Variação..."
+                      error={lineErrors?.variationId?.message}
+                      onChange={(val) => f.onChange(val)}
                     />
                   )}
                 />
-              </div>
+              ) : (
+                <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                  {selItem ? 'Sem variação' : '—'}
+                </div>
+              )}
+            </div>
 
-              {/* Variação */}
-              <div className="col-span-3">
-                {selItem?.hasVariations ? (
-                  <Select
-                    options={[
-                      { value: '', label: 'Selecione...' },
-                      ...(selItem.variations?.filter((v) => v.isActive).map((v) => ({
-                        value: String(v.id),
-                        label: v.description,
-                      })) ?? []),
-                    ]}
-                    error={lineErrors?.variationId?.message}
-                    {...register(`items.${idx}.variationId`, {
-                      validate: (val: string) => {
-                        const item = allItems.find((it) => String(it.id) === watchedItems?.[idx]?.itemId);
-                        if (item?.hasVariations && !val) return 'Selecione uma variação';
-                        return true;
-                      },
-                    })}
-                  />
-                ) : (
-                  <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
-                    {selItem ? 'Sem variação' : '—'}
-                  </div>
-                )}
-              </div>
-
-              {/* Tamanho */}
-              <div className="col-span-3">
-                {sizeOptions ? (
-                  <Select
-                    options={[{ value: '', label: 'Selecione...' }, ...sizeOptions]}
-                    error={lineErrors?.size?.message}
-                    {...register(`items.${idx}.size`, {
-                      validate: (val: string) => {
-                        const item = allItems.find((it) => String(it.id) === watchedItems?.[idx]?.itemId);
-                        if (item && item.sizeType !== 'none' && !val) return 'Selecione um tamanho';
-                        return true;
-                      },
-                    })}
-                  />
-                ) : (
-                  <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
-                    {selItem ? 'Sem tamanho' : '—'}
-                  </div>
-                )}
-              </div>
-
-              {/* Quantidade */}
-              <div className="col-span-2">
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="0"
-                  error={lineErrors?.quantity?.message}
-                  {...register(`items.${idx}.quantity`, {
-                    valueAsNumber: true,
-                    required: 'Obrigatório',
-                    min: { value: 1, message: 'Mín. 1' },
-                    validate: (v: number) => (Number.isFinite(v) && v >= 1) || 'Mín. 1',
-                  })}
+            {/* Tamanho */}
+            <div className="col-span-2">
+              {sizeOptions ? (
+                <Controller
+                  name={`items.${idx}.size`}
+                  control={control}
+                  rules={{ validate: (val: string) => (!selItem || selItem.sizeType === 'none' || !!val) || 'Selecione' }}
+                  render={({ field: f }) => (
+                    <ComboBox
+                      options={sizeOptions}
+                      value={f.value}
+                      clearable={false}
+                      placeholder="Tamanho..."
+                      error={lineErrors?.size?.message}
+                      onChange={(val) => f.onChange(val)}
+                    />
+                  )}
                 />
-              </div>
+              ) : (
+                <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                  {selItem ? 'Sem tam.' : '—'}
+                </div>
+              )}
+            </div>
 
-              {/* Remover */}
-              <div className="col-span-1">
-                {fields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => remove(idx)}
-                    className="w-9 h-[42px] flex items-center justify-center text-red-500 hover:bg-red-500Bg rounded-xl transition-colors"
-                  >×</button>
-                )}
-              </div>
+            {/* Quantidade */}
+            <div className="col-span-2">
+              <Input
+                type="number"
+                min={1}
+                placeholder="0"
+                error={lineErrors?.quantity?.message}
+                {...register(`items.${idx}.quantity`, {
+                  valueAsNumber: true,
+                  required: 'Obrigatório',
+                  min: { value: 1, message: 'Mín. 1' },
+                  validate: (v: number) => (Number.isFinite(v) && v >= 1) || 'Mín. 1',
+                })}
+              />
+            </div>
+
+            {/* Remover */}
+            <div className="col-span-1">
+              {fields.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove(idx)}
+                  className="w-9 h-[42px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                >×</button>
+              )}
             </div>
           </div>
         );
@@ -185,7 +216,7 @@ function ShipmentFormLines({
         variant="secondary"
         size="sm"
         icon={<Plus size={13} />}
-        onClick={() => append({ ...EMPTY_LINE })}
+        onClick={handleAppend}
       >
         Adicionar Item
       </Button>
@@ -218,12 +249,6 @@ export const ShipmentsPage: React.FC = () => {
     }),
   });
 
-  const { data: itemsData } = useQuery({
-    queryKey: ['items-all'],
-    queryFn: () => itemsService.list({ pageSize: 200, isActive: true }),
-  });
-
-  const allItems = itemsData?.data ?? [];
 
   // ── Create form ──
   const createForm = useForm<FormData>({
@@ -311,15 +336,12 @@ export const ShipmentsPage: React.FC = () => {
   function buildPayload(d: FormData) {
     return {
       notes: d.notes,
-      items: d.items.map((i) => {
-        const selItem = allItems.find((it) => String(it.id) === i.itemId);
-        return {
-          itemId:      Number(i.itemId),
-          variationId: selItem?.hasVariations ? Number(i.variationId) || undefined : undefined,
-          size:        i.size || 'none',
-          quantity:    i.quantity,
-        };
-      }),
+      items: d.items.map((i) => ({
+        itemId:      Number(i.itemId),
+        variationId: i.variationId ? Number(i.variationId) : undefined,
+        size:        i.size || 'none',
+        quantity:    i.quantity,
+      })),
     };
   }
 
@@ -502,12 +524,10 @@ export const ShipmentsPage: React.FC = () => {
             fields={createFields.fields}
             register={createForm.register}
             control={createForm.control}
-            watch={createForm.watch}
             setValue={createForm.setValue}
             errors={createForm.formState.errors}
             remove={createFields.remove}
             append={createFields.append}
-            allItems={allItems}
           />
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <Button type="button" variant="secondary" onClick={() => { setCreate(false); createForm.reset({ notes: '', items: [{ ...EMPTY_LINE }] }); }}>
@@ -542,12 +562,11 @@ export const ShipmentsPage: React.FC = () => {
             fields={editFields.fields}
             register={editForm.register}
             control={editForm.control}
-            watch={editForm.watch}
             setValue={editForm.setValue}
             errors={editForm.formState.errors}
             remove={editFields.remove}
             append={editFields.append}
-            allItems={allItems}
+            initialItems={editShipment?.items?.map((i) => i.item)}
           />
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
             <Button type="button" variant="secondary" onClick={() => setEditOpen(null)}>

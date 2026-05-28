@@ -6,8 +6,10 @@ import { Repository, MoreThan } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { EmailService } from './email.service';
+import { EmailService } from '../email/email.service';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { Order } from '../orders/entities/order.entity';
+import { OrderItem } from '../orders/entities/order-item.entity';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -22,6 +24,8 @@ export class AuthService {
     private emailService: EmailService,
     @InjectRepository(PasswordResetToken)
     private resetTokensRepo: Repository<PasswordResetToken>,
+    @InjectRepository(Order)
+    private ordersRepo: Repository<Order>,
   ) {}
 
   async login(dto: LoginDto) {
@@ -42,8 +46,9 @@ export class AuthService {
     };
 
     return {
-      accessToken: this.jwtService.sign(payload),
+      accessToken:       this.jwtService.sign(payload),
       mustChangePassword: user.mustChangePassword,
+      mustAcceptTerms:    !user.termsAcceptedAt,
       user: {
         id:       user.id,
         name:     user.name,
@@ -96,11 +101,13 @@ export class AuthService {
     tokenRecord.used = true;
     await this.resetTokensRepo.save(tokenRecord);
 
-    const { defaultPassword } = await this.usersService.resetPasswordToDefault(user.id);
+    await this.usersService.updatePassword(user.id, dto.newPassword);
 
-    await this.emailService.sendPasswordResetConfirmation(user.email, user.name, defaultPassword);
+    return { message: 'Senha redefinida com sucesso.' };
+  }
 
-    return { message: 'Senha redefinida com sucesso. Verifique seu e-mail.' };
+  async getMe(userId: number) {
+    return this.usersService.findOne(userId);
   }
 
   async changePassword(userId: number, dto: ChangePasswordDto) {
@@ -115,5 +122,44 @@ export class AuthService {
     await this.usersService.updatePassword(user.id, dto.newPassword);
 
     return { message: 'Senha alterada com sucesso.' };
+  }
+
+  async updatePreferences(userId: number, receiveEmails: boolean) {
+    await this.usersService.update(userId, { receiveEmails });
+    return { message: 'Preferências atualizadas.' };
+  }
+
+  async acceptTerms(userId: number) {
+    await this.usersService.acceptTerms(userId);
+    return { message: 'Termos aceitos.' };
+  }
+
+  async exportMyData(userId: number) {
+    const user   = await this.usersService.findOne(userId);
+    const orders = await this.ordersRepo.find({
+      where:     { userId },
+      relations: ['items', 'items.item'],
+      order:     { orderDate: 'DESC' },
+    });
+
+    const { passwordHash: _, ...profile } = user as any;
+
+    return {
+      exportedAt: new Date().toISOString(),
+      profile,
+      orders: orders.map((o) => ({
+        id:           o.id,
+        status:       o.status,
+        orderDate:    o.orderDate,
+        approvalDate: o.approvalDate,
+        adminNotes:   o.adminNotes,
+        items: o.items.map((oi) => ({
+          item:              oi.item?.name ?? `#${oi.itemId}`,
+          requestedQuantity: oi.requestedQuantity,
+          approvedQuantity:  oi.approvedQuantity,
+          size:              oi.size,
+        })),
+      })),
+    };
   }
 }

@@ -59,6 +59,7 @@ export class UsersService {
         'user.email',
         'user.userType',
         'user.isActive',
+        'user.receiveEmails',
         'user.createdAt',
       ])
       .leftJoin('user.studentProfile', 'student')
@@ -180,10 +181,11 @@ export class UsersService {
     const user = await this.findOne(id);
 
     const updates: Partial<User> = {};
-    if (dto.name     !== undefined) updates.name     = dto.name;
-    if (dto.email    !== undefined) updates.email    = dto.email;
-    if (dto.isActive !== undefined) updates.isActive = dto.isActive;
-    if (dto.password)               updates.passwordHash = await bcrypt.hash(dto.password, 10);
+    if (dto.name           !== undefined) updates.name           = dto.name;
+    if (dto.email          !== undefined) updates.email          = dto.email;
+    if (dto.isActive       !== undefined) updates.isActive       = dto.isActive;
+    if (dto.receiveEmails  !== undefined) updates.receiveEmails  = dto.receiveEmails;
+    if (dto.password)                     updates.passwordHash   = await bcrypt.hash(dto.password, 10);
 
     Object.assign(user, updates);
     await this.usersRepo.save(user);
@@ -196,10 +198,8 @@ export class UsersService {
       if (dto.campus             !== undefined) studentUpdates.campus             = dto.campus;
       if (dto.educationLevel     !== undefined) studentUpdates.educationLevel     = dto.educationLevel as any;
       if (dto.modality           !== undefined) studentUpdates.modality           = dto.modality as any;
-      if (dto.intakeForms        !== undefined) studentUpdates.intakeForms        = dto.intakeForms as any;
       if (dto.aids               !== undefined) studentUpdates.aids               = dto.aids as any;
       if (dto.mealTypes          !== undefined) studentUpdates.mealTypes          = dto.mealTypes;
-      if (dto.baremScore         !== undefined) studentUpdates.baremScore         = dto.baremScore;
       if (Object.keys(studentUpdates).length) {
         await this.studentsRepo.update({ userId: id }, studentUpdates);
       }
@@ -238,5 +238,9 @@ export class UsersService {
   async updatePassword(id: number, newPassword: string): Promise<void> {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.usersRepo.update(id, { passwordHash, mustChangePassword: false });
+  }
+
+  async acceptTerms(id: number): Promise<void> {
+    await this.usersRepo.update(id, { termsAcceptedAt: new Date() });
   }
 }

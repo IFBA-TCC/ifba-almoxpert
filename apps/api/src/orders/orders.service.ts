@@ -8,6 +8,8 @@ import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { StockService } from '../stock/stock.service';
 import { MovementsService } from '../movements/movements.service';
+import { EmailService } from '../email/email.service';
+import type { OrderReviewStatus, OrderReviewItem } from '../email/templates';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ReviewOrderDto } from './dto/review-order.dto';
 
@@ -32,6 +34,7 @@ export class OrdersService {
     private orderItemsRepo: Repository<OrderItem>,
     private stockService: StockService,
     private movementsService: MovementsService,
+    private emailService: EmailService,
   ) {}
 
   /** Students see only their own orders; admins see all */
@@ -135,7 +138,7 @@ export class OrdersService {
   async review(id: number, dto: ReviewOrderDto, adminId: number) {
     const order = await this.ordersRepo.findOne({
       where: { id },
-      relations: ['items'],
+      relations: ['items', 'items.item', 'user'],
     });
 
     if (!order) throw new NotFoundException(`Order #${id} not found`);
@@ -159,7 +162,34 @@ export class OrdersService {
       }
     }
 
-    return this.ordersRepo.save(order);
+    const saved = await this.ordersRepo.save(order);
+
+    if (order.user?.receiveEmails) {
+      const hasChanges = dto.status === OrderStatus.APPROVED &&
+        order.items.some((oi) => {
+          const reviewLine = dto.items?.find((r) => r.orderItemId === oi.id);
+          return reviewLine && reviewLine.approvedQuantity !== oi.requestedQuantity;
+        });
+
+      const emailStatus: OrderReviewStatus =
+        dto.status === OrderStatus.REJECTED
+          ? 'rejected'
+          : hasChanges
+          ? 'approved_with_changes'
+          : 'approved';
+
+      const emailItems: OrderReviewItem[] = order.items.map((oi) => ({
+        name:              oi.item?.name ?? `Item #${oi.itemId}`,
+        requestedQuantity: oi.requestedQuantity,
+        approvedQuantity:  oi.approvedQuantity ?? null,
+      }));
+
+      this.emailService
+        .sendOrderReview(order.user.email, order.user.name, order.id, emailStatus, emailItems, dto.adminNotes)
+        .catch(() => {/* fire and forget */});
+    }
+
+    return saved;
   }
 
   /** Admin marks an approved order as delivered and deducts stock */

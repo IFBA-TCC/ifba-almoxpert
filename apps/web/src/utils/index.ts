@@ -59,5 +59,19 @@ export const movementTypeColor: Record<MovementType, string> = {
 export const getInitials = (name: string) =>
   name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
 
+const AID_COLORS: { match: string; cls: string }[] = [
+  { match: 'Alimentação',        cls: 'bg-green-100  text-green-700'  },
+  { match: 'Transporte Munici',  cls: 'bg-blue-100   text-blue-700'   },
+  { match: 'Transporte Intermu', cls: 'bg-indigo-100 text-indigo-700' },
+  { match: 'Moradia',            cls: 'bg-orange-100 text-orange-700' },
+  { match: 'Cópia',              cls: 'bg-purple-100 text-purple-700' },
+  { match: 'Bolsa',              cls: 'bg-yellow-100 text-yellow-700' },
+];
+
+export const aidColor = (aid: string): string => {
+  const found = AID_COLORS.find((c) => aid.includes(c.match));
+  return found?.cls ?? 'bg-gray-100 text-gray-600';
+};
+
 export const cn = (...classes: (string | false | null | undefined)[]) =>
   classes.filter(Boolean).join(' ');

@@ -7,7 +7,6 @@ import { useAuthStore } from './store/authStore';
 
 import { LoginPage }               from './pages/auth/LoginPage';
 import { ForgotPasswordPage }       from './pages/auth/ForgotPasswordPage';
-import { ResetPasswordPage }        from './pages/auth/ResetPasswordPage';
 import { ForceChangePasswordPage }  from './pages/auth/ForceChangePasswordPage';
 import { DashboardPage }            from './pages/dashboard/DashboardPage';
 import { ItemsPage }                from './pages/items/ItemsPage';
@@ -17,18 +16,24 @@ import { OrdersPage }               from './pages/orders/OrdersPage';
 import { MovementsPage }            from './pages/movements/MovementsPage';
 import { UsersPage }                from './pages/users/UsersPage';
 import { ProfilePage }              from './pages/ProfilePage';
+import { TermsModal }               from './components/ui/TermsModal';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
 
 const PrivateRoute: React.FC<{ element: React.ReactNode; adminOnly?: boolean }> = ({ element, adminOnly }) => {
-  const { isAuthenticated, user, mustChangePassword } = useAuthStore();
+  const { isAuthenticated, user, mustChangePassword, mustAcceptTerms } = useAuthStore();
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (mustChangePassword) return <Navigate to="/force-change-password" replace />;
   if (adminOnly && user?.userType !== 'admin') return <Navigate to="/dashboard" replace />;
-  return <>{element}</>;
+  return (
+    <>
+      {mustAcceptTerms && <TermsModal />}
+      {element}
+    </>
+  );
 };
 
 export const App: React.FC = () => (
@@ -38,7 +43,6 @@ export const App: React.FC = () => (
         <Routes>
           <Route path="/login"               element={<LoginPage />} />
           <Route path="/forgot-password"     element={<ForgotPasswordPage />} />
-          <Route path="/reset-password"      element={<ResetPasswordPage />} />
           <Route path="/force-change-password" element={<ForceChangePasswordPage />} />
           <Route element={<PrivateRoute element={<AppLayout />} />}>
             <Route index element={<Navigate to="/dashboard" replace />} />

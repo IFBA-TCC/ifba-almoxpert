@@ -1,9 +1,9 @@
 import {
   IsEmail, IsEnum, IsOptional, IsString, MinLength,
-  IsArray, IsNumber, Min,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserType, StudentAid, IntakeForm, EducationLevel, StudentModality } from 'shared';
+import { UserType, StudentAid, EducationLevel, StudentModality } from 'shared';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'João Silva', description: 'Nome completo' })
@@ -56,16 +56,6 @@ export class CreateUserDto {
 
   @ApiPropertyOptional({
     type: [String],
-    enum: IntakeForm,
-    description: 'Formas de ingresso (somente estudantes)',
-  })
-  @IsOptional()
-  @IsArray()
-  @IsEnum(IntakeForm, { each: true })
-  intakeForms?: IntakeForm[];
-
-  @ApiPropertyOptional({
-    type: [String],
     enum: StudentAid,
     description: 'Auxílios aprovados (somente estudantes)',
   })
@@ -78,12 +68,6 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   mealTypes?: string;
-
-  @ApiPropertyOptional({ example: 27.5, description: 'Pontuação no barema (somente estudantes)' })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  baremScore?: number;
 
   // ── Admin-only ────────────────────────────────────────────
   @ApiPropertyOptional({ example: 'Assistente Social', description: 'Cargo (somente administradores)' })

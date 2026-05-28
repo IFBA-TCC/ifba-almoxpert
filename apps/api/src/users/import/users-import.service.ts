@@ -1,7 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import { UsersService } from '../users.service';
-import { StudentAid, IntakeForm, EducationLevel, StudentModality, UserType } from 'shared';
+import { EmailService } from '../../email/email.service';
+import { StudentAid, EducationLevel, StudentModality, UserType } from 'shared';
 
 export interface ImportRowError {
   row: number;
@@ -23,10 +24,9 @@ export interface ImportResult {
   errors: { row: number; message: string }[];
 }
 
-const VALID_AIDS     = new Set(Object.values(StudentAid));
-const VALID_INTAKES  = new Set(Object.values(IntakeForm));
-const VALID_LEVELS   = new Set(Object.values(EducationLevel));
-const VALID_MOD      = new Set(Object.values(StudentModality));
+const VALID_AIDS   = new Set(Object.values(StudentAid));
+const VALID_LEVELS = new Set(Object.values(EducationLevel));
+const VALID_MOD    = new Set(Object.values(StudentModality));
 
 const REQUIRED_HEADERS = [
   'Matricula',
@@ -36,33 +36,36 @@ const REQUIRED_HEADERS = [
 const HEADER_MAP: Record<string, string> = {
   'Matricula':                          'registrationNumber',
   'Nome Completo':                      'name',
+  'E-mail':                             'email',
   'Campus':                             'campus',
   'Curso':                              'course',
-  'Forma Ingresso':                     'intakeForms',
   'Nível Ensino':                       'educationLevel',
   'Modalidade':                         'modality',
   'Bolsas Auxilios Aprovados':          'aids',
   'Tipos de Refeição (caso seja auxílio alimentação)': 'mealTypes',
-  'Pontuação Barema':                   'baremScore',
 };
 
 interface ParsedRow {
   rowIndex:           number;
   registrationNumber: string;
   name:               string;
+  email?:             string;
   campus?:            string;
   course?:            string;
-  intakeForms?:       string[];
   educationLevel?:    string;
   modality?:          string;
   aids?:              string[];
   mealTypes?:         string;
-  baremScore?:        number;
 }
 
 @Injectable()
 export class UsersImportService {
-  constructor(private usersService: UsersService) {}
+  private readonly logger = new Logger(UsersImportService.name);
+
+  constructor(
+    private usersService: UsersService,
+    private emailService: EmailService,
+  ) {}
 
   private parseWorkbook(buffer: Buffer): ParsedRow[] {
     const wb    = XLSX.read(buffer, { type: 'buffer' });
@@ -77,6 +80,7 @@ export class UsersImportService {
         rowIndex:           i + 2, // +2 because row 1 = header, data starts at 2
         registrationNumber: String(row['Matricula'] ?? '').trim(),
         name:               String(row['Nome Completo'] ?? '').trim(),
+        email:              String(row['E-mail'] ?? '').trim() || undefined,
         campus:             String(row['Campus'] ?? '').trim() || undefined,
         course:             String(row['Curso'] ?? '').trim() || undefined,
         educationLevel:     String(row['Nível Ensino'] ?? '').trim() || undefined,
@@ -87,17 +91,6 @@ export class UsersImportService {
       const aidRaw = String(row['Bolsas Auxilios Aprovados'] ?? '').trim();
       if (aidRaw && aidRaw !== '-') {
         r.aids = aidRaw.split(',').map((s) => s.trim()).filter(Boolean);
-      }
-
-      const intakeRaw = String(row['Forma Ingresso'] ?? '').trim();
-      if (intakeRaw && intakeRaw !== '-') {
-        r.intakeForms = intakeRaw.split(',').map((s) => s.trim()).filter(Boolean);
-      }
-
-      const scoreRaw = row['Pontuação Barema'];
-      if (scoreRaw !== '' && scoreRaw != null) {
-        const n = parseFloat(String(scoreRaw));
-        if (!isNaN(n)) r.baremScore = n;
       }
 
       return r;
@@ -117,6 +110,10 @@ export class UsersImportService {
 
       if (!row.name) {
         errors.push({ row: ri, field: 'Nome Completo', message: 'Nome é obrigatório' });
+      }
+
+      if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
+        errors.push({ row: ri, field: 'E-mail', message: `E-mail inválido: "${row.email}"` });
       }
 
       if (row.educationLevel && !VALID_LEVELS.has(row.educationLevel as EducationLevel)) {
@@ -147,17 +144,6 @@ export class UsersImportService {
         }
       }
 
-      if (row.intakeForms) {
-        for (const form of row.intakeForms) {
-          if (!VALID_INTAKES.has(form as IntakeForm)) {
-            errors.push({
-              row: ri,
-              field: 'Forma Ingresso',
-              message: `Forma de ingresso inválida: "${form}"`,
-            });
-          }
-        }
-      }
     }
 
     const errorRowNumbers = new Set(errors.map((e) => e.row));
@@ -171,10 +157,11 @@ export class UsersImportService {
   }
 
   async import(buffer: Buffer): Promise<ImportResult> {
-    const rows   = this.parseWorkbook(buffer);
-    let created  = 0;
-    let skipped  = 0;
+    const rows    = this.parseWorkbook(buffer);
+    let created   = 0;
+    let skipped   = 0;
     const errors: { row: number; message: string }[] = [];
+    const toEmail: { name: string; email: string; password: string }[] = [];
 
     for (const row of rows) {
       if (!row.registrationNumber || !row.name) {
@@ -182,23 +169,25 @@ export class UsersImportService {
         continue;
       }
 
+      const email    = row.email || `${row.registrationNumber.toLowerCase()}@aluno.ifba.edu.br`;
+      const password = `ifba.${row.registrationNumber}`;
+
       try {
         await this.usersService.create({
           name:               row.name,
-          email:              `${row.registrationNumber.toLowerCase()}@aluno.ifba.edu.br`,
-          password:           `ifba.${row.registrationNumber}`,
+          email,
+          password,
           userType:           UserType.STUDENT,
           registrationNumber: row.registrationNumber,
-          course:             row.course,
-          campus:             row.campus,
-          educationLevel:     row.educationLevel as EducationLevel,
-          modality:           row.modality as StudentModality,
-          intakeForms:        row.intakeForms as IntakeForm[],
-          aids:               row.aids as StudentAid[],
-          mealTypes:          row.mealTypes,
-          baremScore:         row.baremScore,
+          course:         row.course,
+          campus:         row.campus,
+          educationLevel: row.educationLevel as EducationLevel,
+          modality:       row.modality as StudentModality,
+          aids:           row.aids as StudentAid[],
+          mealTypes:      row.mealTypes,
         });
         created++;
+        toEmail.push({ name: row.name, email, password });
       } catch (err: any) {
         if (err?.status === 409 || err?.code === 'ER_DUP_ENTRY') {
           skipped++;
@@ -206,6 +195,20 @@ export class UsersImportService {
           errors.push({ row: row.rowIndex, message: err?.message ?? 'Erro desconhecido' });
         }
       }
+    }
+
+    // Dispara welcome emails em paralelo sem bloquear a resposta
+    if (toEmail.length > 0) {
+      Promise.allSettled(
+        toEmail.map((u) => this.emailService.sendWelcome(u.email, u.name, u.password)),
+      ).then((results) => {
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) {
+          this.logger.warn(`${failed} de ${toEmail.length} e-mails de boas-vindas falharam.`);
+        } else {
+          this.logger.log(`${toEmail.length} e-mail(s) de boas-vindas enviado(s).`);
+        }
+      });
     }
 
     return { created, skipped, errors };
@@ -219,34 +222,31 @@ export class UsersImportService {
       [
         'Matricula',
         'Nome Completo',
+        'E-mail',
         'Campus',
         'Curso',
-        'Forma Ingresso',
         'Nível Ensino',
         'Modalidade',
         'Bolsas Auxilios Aprovados',
         'Tipos de Refeição (caso seja auxílio alimentação)',
-        'Pontuação Barema',
       ],
       [
         '20240001',
         'Exemplo da Silva',
+        '20240001@aluno.ifba.edu.br',
         'VC',
         '119 - Bacharelado em Sistemas de Informação',
-        IntakeForm.SISU_AMPLA_CONCORRENCIA,
         EducationLevel.GRADUACAO,
         StudentModality.BACHARELADO,
         `${StudentAid.AUXILIO_ALIMENTACAO}, ${StudentAid.AUXILIO_TRANSPORTE_MUNICIPAL}`,
         'Almoço',
-        '27.5',
       ],
     ];
 
     const ws1 = XLSX.utils.aoa_to_sheet(dataRows);
     ws1['!cols'] = [
-      { wch: 15 }, { wch: 40 }, { wch: 8 }, { wch: 60 },
-      { wch: 80 }, { wch: 15 }, { wch: 22 }, { wch: 60 },
-      { wch: 30 }, { wch: 15 },
+      { wch: 15 }, { wch: 40 }, { wch: 35 }, { wch: 8 }, { wch: 60 },
+      { wch: 15 }, { wch: 22 }, { wch: 60 }, { wch: 30 },
     ];
     XLSX.utils.book_append_sheet(wb, ws1, 'Alunos');
 
@@ -255,14 +255,13 @@ export class UsersImportService {
       ['Campo', 'Obrigatório', 'Valores aceitos / Descrição'],
       ['Matricula', 'Sim', 'Número de matrícula único do aluno'],
       ['Nome Completo', 'Sim', 'Nome completo do aluno'],
+      ['E-mail', 'Não', 'E-mail do aluno. Se não informado, será gerado como matricula@aluno.ifba.edu.br'],
       ['Campus', 'Não', 'Sigla do campus (ex: VC)'],
       ['Curso', 'Não', 'Código e nome do curso'],
-      ['Forma Ingresso', 'Não', Object.values(IntakeForm).join('\n')],
       ['Nível Ensino', 'Não', Object.values(EducationLevel).join(' | ')],
       ['Modalidade', 'Não', Object.values(StudentModality).join(' | ')],
       ['Bolsas Auxilios Aprovados', 'Não', `Separe múltiplos valores com vírgula:\n${Object.values(StudentAid).join('\n')}`],
       ['Tipos de Refeição', 'Não', 'Almoço | Jantar | Café da manhã | Almoço, Café da manhã'],
-      ['Pontuação Barema', 'Não', 'Número decimal (ex: 27.5)'],
     ];
 
     const ws2 = XLSX.utils.aoa_to_sheet(helpRows);

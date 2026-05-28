@@ -6,6 +6,8 @@ import type {
   PaginatedResponse, ListParams,
 } from '../types';
 
+export { itemsService } from './itemsService';
+
 // ─── Shipments ────────────────────────────────────────────────────────────────
 export const shipmentsService = {
   async list(params?: ListParams & {
@@ -133,8 +135,16 @@ export const usersService = {
     await api.delete(`/users/${id}`);
   },
 
-  downloadTemplate(): string {
-    return `${api.defaults.baseURL}/users/import/template`;
+  async downloadTemplate(): Promise<void> {
+    const res = await api.get('/users/import/template', { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data as Blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = 'modelo-alunos.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 
   async validateImport(file: File): Promise<import('../types').ImportValidationResult> {

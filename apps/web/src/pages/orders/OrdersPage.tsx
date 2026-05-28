@@ -11,13 +11,19 @@ import { Pagination } from '../../components/ui/Pagination';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { FilterBar, type FilterFieldDef } from '../../components/ui/FilterBar';
-import { Select, Input } from '../../components/ui/FormFields';
+import { ComboBox, type ComboBoxOption } from '../../components/ui/ComboBox';
+import { Input } from '../../components/ui/FormFields';
 import { ordersService } from '../../services/index';
 import { itemsService } from '../../services/itemsService';
 import { useToast } from '../../components/ui/Toast';
 import { useAuthStore } from '../../store/authStore';
-import { formatDateTime, orderStatusLabel, orderStatusColor } from '../../utils';
+import { formatDateTime, orderStatusLabel, orderStatusColor, aidColor } from '../../utils';
 import type { Order, OrderStatus, Item, StudentProfile } from '../../types';
+
+const itemsFetchFn = async ({ search, pageIndex, pageSize }: { search: string; pageIndex: number; pageSize: number }) => {
+  const res = await itemsService.list({ name: search || undefined, pageIndex, pageSize, isActive: true });
+  return { data: res.data.map((i) => ({ value: String(i.id), label: i.name, ...i })), total: res.total };
+};
 
 const CLOTHING_SIZES = ['PP', 'P', 'M', 'G', 'GG', 'GGG'];
 const SHOE_SIZES = ['33','34','35','36','37','38','39','40','41','42','43','44','45'];
@@ -87,7 +93,7 @@ function StudentInfoPanel({ profile }: { profile: StudentProfile }) {
             {profile.aids.map((aid) => (
               <span
                 key={aid}
-                className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium"
+                className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${aidColor(aid)}`}
               >
                 {aid.replace(' (VC)', '')}
               </span>
@@ -148,19 +154,15 @@ export const OrdersPage: React.FC = () => {
     }),
   });
 
-  const { data: itemsData } = useQuery({
-    queryKey: ['items-all'],
-    queryFn: () => itemsService.list({ pageSize: 200, isActive: true }),
-  });
+  const [selItems, setSelItems] = useState<(Item | undefined)[]>([undefined]);
 
   const {
-    register, handleSubmit, control, reset, watch, setValue,
+    register, handleSubmit, control, reset, setValue,
     formState: { errors: formErrors },
   } = useForm<{ items: FormLine[] }>({
     defaultValues: { items: [{ itemId: '', variationId: '', size: '', requestedQuantity: 1 }] },
   });
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
-  const watchedItems = watch('items');
 
   const createMutation = useMutation({
     mutationFn: ordersService.create,
@@ -186,7 +188,6 @@ export const OrdersPage: React.FC = () => {
     onError: () => toast.error('Erro ao entregar pedido.'),
   });
 
-  const allItems = itemsData?.data ?? [];
 
   const columns = [
     { key: 'id', header: '#',
@@ -376,20 +377,16 @@ export const OrdersPage: React.FC = () => {
       >
         <form
           onSubmit={handleSubmit((d) => {
-            const items = d.items.map((i) => {
-              const selItem = allItems.find((it) => String(it.id) === i.itemId);
-              return {
-                itemId:            Number(i.itemId),
-                variationId:       selItem?.hasVariations ? Number(i.variationId) || undefined : undefined,
-                size:              i.size || 'none',
-                requestedQuantity: i.requestedQuantity,
-              };
-            });
+            const items = d.items.map((i, idx) => ({
+              itemId:            Number(i.itemId),
+              variationId:       i.variationId ? Number(i.variationId) : undefined,
+              size:              i.size || 'none',
+              requestedQuantity: i.requestedQuantity,
+            }));
             createMutation.mutate({ items });
           })}
           className="space-y-3"
         >
-          {/* Cabeçalho */}
           <div className="grid grid-cols-12 gap-2 px-0.5">
             <p className="col-span-4 label mb-0">Item *</p>
             <p className="col-span-3 label mb-0">Variação</p>
@@ -399,127 +396,126 @@ export const OrdersPage: React.FC = () => {
           </div>
 
           {fields.map((field, idx) => {
-            const selItemId  = watchedItems?.[idx]?.itemId;
-            const selItem    = allItems.find((it) => String(it.id) === selItemId);
+            const selItem    = selItems[idx];
             const sizeOptions = getSizeOptions(selItem);
             const lineErrors  = formErrors.items?.[idx];
 
             return (
-              <div key={field.id} className="space-y-1">
-                <div className="grid grid-cols-12 gap-2 items-start">
-                  {/* Item */}
-                  <div className="col-span-4">
+              <div key={field.id} className="grid grid-cols-12 gap-2 items-start">
+                <div className="col-span-4">
+                  <Controller
+                    name={`items.${idx}.itemId`}
+                    control={control}
+                    rules={{ required: 'Selecione um item' }}
+                    render={({ field: f }) => (
+                      <ComboBox
+                        fetchFn={itemsFetchFn}
+                        queryKey={`order-item-${idx}`}
+                        value={f.value}
+                        placeholder="Selecione..."
+                        error={lineErrors?.itemId?.message}
+                        onChange={(val, opt) => {
+                          f.onChange(val);
+                          setSelItems((prev) => { const n = [...prev]; n[idx] = opt as unknown as Item; return n; });
+                          setValue(`items.${idx}.variationId`, '');
+                          setValue(`items.${idx}.size`, '');
+                        }}
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="col-span-3">
+                  {selItem?.hasVariations ? (
                     <Controller
-                      name={`items.${idx}.itemId`}
+                      name={`items.${idx}.variationId`}
                       control={control}
-                      rules={{ required: 'Selecione um item' }}
+                      rules={{ validate: (val: string) => (!selItem?.hasVariations || !!val) || 'Selecione' }}
                       render={({ field: f }) => (
-                        <Select
-                          options={allItems.map((it) => ({ value: String(it.id), label: it.name }))}
-                          placeholder="Selecione..."
+                        <ComboBox
+                          options={selItem.variations?.filter((v) => v.isActive).map((v) => ({
+                            value: String(v.id), label: v.description,
+                          })) ?? []}
                           value={f.value}
-                          error={lineErrors?.itemId?.message}
-                          onChange={(e) => {
-                            f.onChange(e);
-                            setValue(`items.${idx}.variationId`, '');
-                            setValue(`items.${idx}.size`, '');
-                          }}
+                          clearable={false}
+                          placeholder="Variação..."
+                          error={lineErrors?.variationId?.message}
+                          onChange={(val) => f.onChange(val)}
                         />
                       )}
                     />
-                  </div>
+                  ) : (
+                    <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                      {selItem ? 'Sem variação' : '—'}
+                    </div>
+                  )}
+                </div>
 
-                  {/* Variação */}
-                  <div className="col-span-3">
-                    {selItem?.hasVariations ? (
-                      <Select
-                        options={[
-                          { value: '', label: 'Selecione...' },
-                          ...(selItem.variations?.filter((v) => v.isActive).map((v) => ({
-                            value: String(v.id),
-                            label: v.description,
-                          })) ?? []),
-                        ]}
-                        error={lineErrors?.variationId?.message}
-                        {...register(`items.${idx}.variationId`, {
-                          validate: (val) => {
-                            const item = allItems.find((it) => String(it.id) === watchedItems?.[idx]?.itemId);
-                            if (item?.hasVariations && !val) return 'Selecione uma variação';
-                            return true;
-                          },
-                        })}
-                      />
-                    ) : (
-                      <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
-                        {selItem ? 'Sem variação' : '—'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Tamanho */}
-                  <div className="col-span-2">
-                    {sizeOptions ? (
-                      <Select
-                        options={[{ value: '', label: 'Selecione...' }, ...sizeOptions]}
-                        error={lineErrors?.size?.message}
-                        {...register(`items.${idx}.size`, {
-                          validate: (val) => {
-                            const item = allItems.find((it) => String(it.id) === watchedItems?.[idx]?.itemId);
-                            if (item && item.sizeType !== 'none' && !val) return 'Selecione';
-                            return true;
-                          },
-                        })}
-                      />
-                    ) : (
-                      <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
-                        {selItem ? 'Sem tamanho' : '—'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Quantidade */}
-                  <div className="col-span-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="0"
-                      error={lineErrors?.requestedQuantity?.message}
-                      {...register(`items.${idx}.requestedQuantity`, {
-                        valueAsNumber: true,
-                        required: 'Obrigatório',
-                        min: { value: 1, message: 'Mín. 1' },
-                        validate: (v) => (Number.isFinite(v) && v >= 1) || 'Mín. 1',
-                      })}
+                <div className="col-span-2">
+                  {sizeOptions ? (
+                    <Controller
+                      name={`items.${idx}.size`}
+                      control={control}
+                      rules={{ validate: (val: string) => (!selItem || selItem.sizeType === 'none' || !!val) || 'Selecione' }}
+                      render={({ field: f }) => (
+                        <ComboBox
+                          options={sizeOptions}
+                          value={f.value}
+                          clearable={false}
+                          placeholder="Tamanho..."
+                          error={lineErrors?.size?.message}
+                          onChange={(val) => f.onChange(val)}
+                        />
+                      )}
                     />
-                  </div>
+                  ) : (
+                    <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                      {selItem ? 'Sem tam.' : '—'}
+                    </div>
+                  )}
+                </div>
 
-                  {/* Remover */}
-                  <div className="col-span-1">
-                    {fields.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => remove(idx)}
-                        className="w-9 h-[42px] flex items-center justify-center text-red-500 hover:bg-red-500Bg rounded-xl transition-colors"
-                      >×</button>
-                    )}
-                  </div>
+                <div className="col-span-2">
+                  <Input
+                    type="number" min={1} placeholder="0"
+                    error={lineErrors?.requestedQuantity?.message}
+                    {...register(`items.${idx}.requestedQuantity`, {
+                      valueAsNumber: true,
+                      required: 'Obrigatório',
+                      min: { value: 1, message: 'Mín. 1' },
+                      validate: (v) => (Number.isFinite(v) && v >= 1) || 'Mín. 1',
+                    })}
+                  />
+                </div>
+
+                <div className="col-span-1">
+                  {fields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        remove(idx);
+                        setSelItems((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                      className="w-9 h-[42px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                    >×</button>
+                  )}
                 </div>
               </div>
             );
           })}
 
           <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            icon={<Plus size={13} />}
-            onClick={() => append({ itemId: '', variationId: '', size: '', requestedQuantity: 1 })}
+            type="button" variant="secondary" size="sm" icon={<Plus size={13} />}
+            onClick={() => {
+              append({ itemId: '', variationId: '', size: '', requestedQuantity: 1 });
+              setSelItems((prev) => [...prev, undefined]);
+            }}
           >
             Adicionar Item
           </Button>
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
-            <Button type="button" variant="secondary" onClick={() => { setCreateOpen(false); reset(); }}>Cancelar</Button>
+            <Button type="button" variant="secondary" onClick={() => { setCreateOpen(false); reset(); setSelItems([undefined]); }}>Cancelar</Button>
             <Button type="submit" loading={createMutation.isPending}>Enviar Pedido</Button>
           </div>
         </form>

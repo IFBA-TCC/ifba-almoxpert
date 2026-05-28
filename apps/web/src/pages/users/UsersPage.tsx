@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Users, Plus, Trash2, ShieldCheck, GraduationCap, Pencil,
-  Download, Upload, CheckCircle2, XCircle, AlertTriangle, KeyRound,
+  Download, Upload, CheckCircle2, XCircle, AlertTriangle, KeyRound, Mail, MailX,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -16,12 +16,13 @@ import { Pagination } from '../../components/ui/Pagination';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmModal } from '../../components/ui/Modal';
 import { Input, Select } from '../../components/ui/FormFields';
+import { ComboBox } from '../../components/ui/ComboBox';
 import { usersService } from '../../services/index';
 import { useToast } from '../../components/ui/Toast';
 import { getInitials, formatDate } from '../../utils';
 import { UserFilters, defaultFilters } from './UserFilters';
 import type { UserFiltersState } from './UserFilters';
-import type { User, UpdateUserDto, ImportValidationResult, ImportResult, StudentAid, IntakeForm } from '../../types';
+import type { User, UpdateUserDto, ImportValidationResult, ImportResult, StudentAid } from '../../types';
 
 type OutletCtx = { onMenuClick: () => void };
 
@@ -32,29 +33,6 @@ const AIDS_OPTIONS: { value: StudentAid; label: string }[] = [
   { value: 'Auxílio Moradia (VC)',                 label: 'Moradia' },
   { value: 'Auxílio Cópia e Impressão (VC)',       label: 'Cópia e Impressão' },
   { value: 'Bolsa de Estudo (VC)',                 label: 'Bolsa de Estudo' },
-];
-
-const INTAKE_OPTIONS: { value: IntakeForm; label: string }[] = [
-  { value: 'SISU / AMPLA CONCORRÊNCIA',                                                                                                   label: 'SISU / Ampla Concorrência' },
-  { value: 'SISU / ESCOLAS PÚBLICAS',                                                                                                     label: 'SISU / Escolas Públicas' },
-  { value: 'SISU / ESCOLAS PÚBLICAS / BAIXA RENDA',                                                                                      label: 'SISU / EP / Baixa Renda' },
-  { value: 'SISU / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS',                                                       label: 'SISU / EP / PPI' },
-  { value: 'SISU / ESCOLAS PÚBLICAS / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS',                                        label: 'SISU / EP / Baixa Renda / PPI' },
-  { value: 'SISU / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS / PESSOAS COM DEFICIÊNCIA',                            label: 'SISU / EP / PPI / PCD' },
-  { value: 'SISU / ESCOLAS PÚBLICAS / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS / PESSOAS COM DEFICIÊNCIA',              label: 'SISU / EP / Baixa Renda / PPI / PCD' },
-  { value: 'PROCESSO SELETIVO / AMPLA CONCORRÊNCIA',                                                                                     label: 'Proc. Seletivo / Ampla Concorrência' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS',                                                                                       label: 'Proc. Seletivo / Escolas Públicas' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / BAIXA RENDA',                                                                         label: 'Proc. Seletivo / EP / Baixa Renda' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS',                                         label: 'Proc. Seletivo / EP / PPI' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS',                           label: 'Proc. Seletivo / EP / Baixa Renda / PPI' },
-  { value: 'PROCESSO SELETIVO / QUILOMBOLAS',                                                                                             label: 'Proc. Seletivo / Quilombolas' },
-  { value: 'PROCESSO SELETIVO / PESSOA COM DEFICIÊNCIA',                                                                                  label: 'Proc. Seletivo / PCD' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA',                                                              label: 'Proc. Seletivo / EP / PCD' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA / BAIXA RENDA',                                               label: 'Proc. Seletivo / EP / PCD / Baixa Renda' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS',               label: 'Proc. Seletivo / EP / PCD / PPI' },
-  { value: 'PROCESSO SELETIVO / ESCOLAS PÚBLICAS / PESSOAS COM DEFICIÊNCIA / BAIXA RENDA / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS', label: 'Proc. Seletivo / EP / PCD / Baixa Renda / PPI' },
-  { value: 'PROCESSO SELETIVO PARA VAGAS REMANESCENTES / ESCOLAS PÚBLICAS / AUTODECLARAÇÃO - PRETOS, PARDOS E INDÍGENAS',                label: 'Proc. Seletivo Vagas Remanescentes / EP / PPI' },
-  { value: 'PROGRAMA PEC-G',                                                                                                              label: 'Programa PEC-G' },
 ];
 
 const createSchema = z.object({
@@ -68,10 +46,8 @@ const createSchema = z.object({
   campus:             z.string().optional(),
   educationLevel:     z.string().optional(),
   modality:           z.string().optional(),
-  intakeForm:         z.string().optional(),
   aids:               z.array(z.string()).optional(),
   mealTypes:          z.string().optional(),
-  baremScore:         z.string().optional(),
   // admin fields
   position:           z.string().optional(),
 });
@@ -112,6 +88,9 @@ export const UsersPage: React.FC = () => {
   const [importResult, setImportResult]     = useState<ImportResult | null>(null);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
 
+  const importStepNum = importStep === 'idle' || importStep === 'validating' ? 1
+    : importStep === 'validated' ? 2 : 3;
+
   const handleFiltersChange = (f: UserFiltersState) => {
     setFilters(f);
     setPage(1);
@@ -142,17 +121,19 @@ export const UsersPage: React.FC = () => {
 
   // ── Forms ────────────────────────────────────────────────────────────────────
   const {
-    register, handleSubmit, watch, reset,
+    register, handleSubmit, watch, reset, setValue,
     formState: { errors },
   } = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
-    defaultValues: { userType: 'student' },
+    defaultValues: { userType: 'student', aids: [] },
   });
   const watchType = watch('userType');
+  const watchAids = watch('aids') ?? [];
 
   const {
     register: editReg, handleSubmit: editHandleSubmit,
-    reset: editReset, formState: { errors: editErrors },
+    reset: editReset, watch: editWatch, setValue: editSetValue,
+    formState: { errors: editErrors },
   } = useForm<EditForm>({
     resolver: zodResolver(editSchema),
   });
@@ -199,10 +180,8 @@ export const UsersPage: React.FC = () => {
         campus:             d.campus             || undefined,
         educationLevel:     (d.educationLevel    || undefined) as any,
         modality:           (d.modality          || undefined) as any,
-        intakeForms:        d.intakeForm ? [d.intakeForm as any] : undefined,
         aids:               d.aids?.length ? d.aids as any : undefined,
         mealTypes:          d.mealTypes          || undefined,
-        baremScore:         d.baremScore ? Number(d.baremScore) : undefined,
       };
     }
     return { ...base, position: d.position || undefined };
@@ -343,6 +322,12 @@ export const UsersPage: React.FC = () => {
         : <Badge className="bg-red-500Bg text-red-500" dot>Inativo</Badge>,
     },
     {
+      key: 'receiveEmails', header: 'E-mails',
+      render: (u: User) => u.receiveEmails
+        ? <span title="Recebendo e-mails" className="flex items-center gap-1 text-xs text-emerald-600"><Mail size={13} /> Ativo</span>
+        : <span title="E-mails desativados" className="flex items-center gap-1 text-xs text-gray-400"><MailX size={13} /> Inativo</span>,
+    },
+    {
       key: 'actions', header: '',
       render: (u: User) => (
         <div className="flex items-center gap-1 justify-end">
@@ -380,14 +365,14 @@ export const UsersPage: React.FC = () => {
         onMenuClick={onMenuClick}
         actions={
           <div className="flex items-center gap-2">
-            <a
-              href={usersService.downloadTemplate()}
-              download="modelo-alunos.xlsx"
+            <button
+              type="button"
+              onClick={() => usersService.downloadTemplate()}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <Download size={14} />
               Planilha Modelo
-            </a>
+            </button>
             <Button variant="secondary" icon={<Upload size={15} />} onClick={openImport}>
               Importar
             </Button>
@@ -479,79 +464,58 @@ export const UsersPage: React.FC = () => {
             <div className="space-y-4 border-t border-gray-100 pt-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dados acadêmicos</p>
 
-              <div className="grid sm:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <Input label="Matrícula" placeholder="20221234" {...register('registrationNumber')} />
                 <Input label="Campus" placeholder="VC" {...register('campus')} />
-                <Input
-                  label="Pontuação Barema"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  placeholder="0.0"
-                  {...register('baremScore')}
-                />
               </div>
 
               <Input label="Curso" placeholder="113 - Bacharelado em Engenharia Elétrica" {...register('course')} />
 
               <div className="grid sm:grid-cols-2 gap-4">
-                <Select
+                <ComboBox
                   label="Nível de Ensino"
                   placeholder="Selecione..."
                   options={[
-                    { value: 'Graduação',  label: 'Graduação' },
-                    { value: 'Médio',      label: 'Médio' },
+                    { value: 'Graduação', label: 'Graduação' },
+                    { value: 'Médio',     label: 'Médio' },
                   ]}
-                  {...register('educationLevel')}
+                  value={watch('educationLevel') ?? ''}
+                  onChange={(v) => setValue('educationLevel', v as string)}
                 />
-                <Select
+                <ComboBox
                   label="Modalidade"
                   placeholder="Selecione..."
                   options={[
-                    { value: 'Bacharelado',         label: 'Bacharelado' },
-                    { value: 'Licenciatura',         label: 'Licenciatura' },
-                    { value: 'Técnico Integrado',    label: 'Técnico Integrado' },
-                    { value: 'Técnico Subsequente',  label: 'Técnico Subsequente' },
+                    { value: 'Bacharelado',        label: 'Bacharelado' },
+                    { value: 'Licenciatura',        label: 'Licenciatura' },
+                    { value: 'Técnico Integrado',   label: 'Técnico Integrado' },
+                    { value: 'Técnico Subsequente', label: 'Técnico Subsequente' },
                   ]}
-                  {...register('modality')}
+                  value={watch('modality') ?? ''}
+                  onChange={(v) => setValue('modality', v as string)}
                 />
               </div>
 
-              <Select
-                label="Forma de Ingresso"
-                placeholder="Selecione..."
-                options={INTAKE_OPTIONS}
-                {...register('intakeForm')}
+              <ComboBox
+                multiple
+                label="Auxílios Aprovados"
+                placeholder="Selecione os auxílios..."
+                options={AIDS_OPTIONS}
+                value={watchAids as string[]}
+                onChange={(vals) => setValue('aids', vals as string[])}
               />
 
-              {/* Auxílios — checkboxes */}
-              <div>
-                <p className="label mb-2">Auxílios Aprovados</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {AIDS_OPTIONS.map((opt) => (
-                    <label key={opt.value} className="flex items-center gap-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        value={opt.value}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer"
-                        {...register('aids')}
-                      />
-                      <span className="text-xs text-gray-600 group-hover:text-gray-800">{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <Select
+              <ComboBox
                 label="Tipo de Refeição (auxílio alimentação)"
                 placeholder="Não se aplica"
                 options={[
-                  { value: 'Almoço',                  label: 'Almoço' },
-                  { value: 'Jantar',                   label: 'Jantar' },
-                  { value: 'Café da manhã',            label: 'Café da manhã' },
-                  { value: 'Almoço, Café da manhã',    label: 'Almoço e Café da manhã' },
+                  { value: 'Almoço',               label: 'Almoço' },
+                  { value: 'Jantar',                label: 'Jantar' },
+                  { value: 'Café da manhã',         label: 'Café da manhã' },
+                  { value: 'Almoço, Café da manhã', label: 'Almoço e Café da manhã' },
                 ]}
-                {...register('mealTypes')}
+                value={watch('mealTypes') ?? ''}
+                onChange={(v) => setValue('mealTypes', v as string)}
               />
             </div>
           )}
@@ -577,21 +541,34 @@ export const UsersPage: React.FC = () => {
             <Input label="Nome Completo" placeholder="João da Silva" error={editErrors.name?.message} {...editReg('name')} />
             <Input label="E-mail" type="email" placeholder="joao@email.com" error={editErrors.email?.message} {...editReg('email')} />
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Input
-              label="Nova Senha"
-              type="password"
-              placeholder="Deixe em branco para não alterar"
-              error={editErrors.password?.message}
-              {...editReg('password')}
-            />
-            <Select
+          {editUserType === 'admin' ? (
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input
+                label="Nova Senha"
+                type="password"
+                placeholder="Deixe em branco para não alterar"
+                error={editErrors.password?.message}
+                {...editReg('password')}
+              />
+              <ComboBox
+                label="Status"
+                options={[{ value: 'true', label: 'Ativo' }, { value: 'false', label: 'Inativo' }]}
+                error={editErrors.isActive?.message}
+                clearable={false}
+                value={editWatch('isActive') ?? ''}
+                onChange={(v) => editSetValue('isActive', v as 'true' | 'false')}
+              />
+            </div>
+          ) : (
+            <ComboBox
               label="Status"
               options={[{ value: 'true', label: 'Ativo' }, { value: 'false', label: 'Inativo' }]}
               error={editErrors.isActive?.message}
-              {...editReg('isActive')}
+              clearable={false}
+              value={editWatch('isActive') ?? ''}
+              onChange={(v) => editSetValue('isActive', v as 'true' | 'false')}
             />
-          </div>
+          )}
 
           {editUserType === 'student' ? (
             <div className="grid sm:grid-cols-2 gap-4">
@@ -618,12 +595,45 @@ export const UsersPage: React.FC = () => {
         icon={<Upload size={18} />}
         maxWidth="xl"
       >
-        <div className="space-y-4">
-          {/* Step: idle / pick file */}
-          {(importStep === 'idle' || importStep === 'validating') && (
-            <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-10 gap-3">
-              <Upload size={32} className="text-gray-300" />
-              <p className="text-sm text-gray-500">Selecione o arquivo <span className="font-semibold">.xlsx</span> ou <span className="font-semibold">.xls</span></p>
+        <div className="space-y-5">
+          {/* ── Step indicator ── */}
+          <div className="flex items-center justify-center">
+            {[
+              { n: 1, label: 'Arquivo' },
+              { n: 2, label: 'Validação' },
+              { n: 3, label: 'Importação' },
+            ].map(({ n, label }, i) => (
+              <React.Fragment key={n}>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className={[
+                    'w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all',
+                    n < importStepNum  ? 'bg-blue-600 border-blue-600 text-white' :
+                    n === importStepNum ? 'border-blue-500 text-blue-600 bg-blue-50' :
+                                         'border-gray-200 text-gray-300 bg-white',
+                  ].join(' ')}>
+                    {n < importStepNum ? <CheckCircle2 size={14} /> : n}
+                  </div>
+                  <span className={`text-[10px] font-medium ${n <= importStepNum ? 'text-blue-600' : 'text-gray-300'}`}>
+                    {label}
+                  </span>
+                </div>
+                {i < 2 && (
+                  <div className={`h-0.5 flex-1 mb-5 mx-2 transition-all ${n < importStepNum ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* ── Etapa 1: seleção do arquivo ── */}
+          {importStepNum === 1 && (
+            <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-12 gap-3">
+              <Upload size={36} className={importStep === 'validating' ? 'text-blue-400 animate-bounce' : 'text-gray-300'} />
+              <p className="text-sm text-gray-500">
+                Selecione o arquivo <span className="font-semibold">.xlsx</span> ou <span className="font-semibold">.xls</span>
+              </p>
+              {importFile && importStep === 'validating' && (
+                <p className="text-xs text-blue-500 font-medium">{importFile.name}</p>
+              )}
               <Button
                 type="button"
                 variant="secondary"
@@ -642,10 +652,9 @@ export const UsersPage: React.FC = () => {
             </div>
           )}
 
-          {/* Step: validated */}
-          {importStep === 'validated' && validationResult && (
+          {/* ── Etapa 2: resultado da validação ── */}
+          {importStepNum === 2 && validationResult && (
             <>
-              {/* Summary */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-gray-800">{validationResult.totalRows}</p>
@@ -663,7 +672,6 @@ export const UsersPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status badge */}
               {validationResult.valid ? (
                 <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl text-sm font-medium">
                   <CheckCircle2 size={16} />
@@ -676,9 +684,8 @@ export const UsersPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Error table */}
               {validationResult.errors.length > 0 && (
-                <div className="border border-red-100 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+                <div className="border border-red-100 rounded-xl overflow-hidden max-h-52 overflow-y-auto">
                   <table className="w-full text-xs">
                     <thead className="bg-red-50 sticky top-0">
                       <tr>
@@ -704,11 +711,7 @@ export const UsersPage: React.FC = () => {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => {
-                    setImportStep('idle');
-                    setImportFile(null);
-                    setValidation(null);
-                  }}
+                  onClick={() => { setImportStep('idle'); setImportFile(null); setValidation(null); }}
                 >
                   Trocar arquivo
                 </Button>
@@ -723,63 +726,67 @@ export const UsersPage: React.FC = () => {
             </>
           )}
 
-          {/* Step: importing */}
-          {importStep === 'importing' && (
-            <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <Upload size={32} className="text-blue-400 animate-bounce" />
-              <p className="text-sm text-gray-500">Importando alunos, aguarde...</p>
-            </div>
-          )}
-
-          {/* Step: done */}
-          {importStep === 'done' && importResult && (
+          {/* ── Etapa 3: processando / concluído ── */}
+          {importStepNum === 3 && (
             <>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-emerald-600">{importResult.created}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Criados</p>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-gray-500">{importResult.skipped}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Já existiam</p>
-                </div>
-                <div className={`${importResult.errors.length > 0 ? 'bg-red-50' : 'bg-emerald-50'} rounded-xl p-3 text-center`}>
-                  <p className={`text-2xl font-bold ${importResult.errors.length > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                    {importResult.errors.length}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">Falhas</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl text-sm font-medium">
-                <CheckCircle2 size={16} />
-                Importação concluída! {importResult.created} aluno(s) cadastrado(s).
-              </div>
-
-              {importResult.errors.length > 0 && (
-                <div className="border border-red-100 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-red-50 sticky top-0">
-                      <tr>
-                        <th className="table-header text-left w-14">Linha</th>
-                        <th className="table-header text-left">Erro</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-red-50">
-                      {importResult.errors.map((err, i) => (
-                        <tr key={i} className="bg-white">
-                          <td className="table-cell font-mono text-gray-400">{err.row}</td>
-                          <td className="table-cell text-red-500">{err.message}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {importStep === 'importing' && (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <Upload size={36} className="text-blue-400 animate-bounce" />
+                  <p className="text-sm text-gray-500 font-medium">Importando alunos, aguarde...</p>
+                  <p className="text-xs text-gray-400">Isso pode levar alguns instantes</p>
                 </div>
               )}
 
-              <div className="flex justify-end pt-2 border-t border-gray-100">
-                <Button type="button" onClick={closeImport}>Fechar</Button>
-              </div>
+              {importStep === 'done' && importResult && (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-emerald-50 rounded-xl p-3 text-center">
+                      <p className="text-2xl font-bold text-emerald-600">{importResult.created}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Criados</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-3 text-center">
+                      <p className="text-2xl font-bold text-gray-500">{importResult.skipped}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Já existiam</p>
+                    </div>
+                    <div className={`${importResult.errors.length > 0 ? 'bg-red-50' : 'bg-emerald-50'} rounded-xl p-3 text-center`}>
+                      <p className={`text-2xl font-bold ${importResult.errors.length > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                        {importResult.errors.length}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">Falhas</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl text-sm font-medium">
+                    <CheckCircle2 size={16} />
+                    Importação concluída! {importResult.created} aluno(s) cadastrado(s).
+                  </div>
+
+                  {importResult.errors.length > 0 && (
+                    <div className="border border-red-100 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-red-50 sticky top-0">
+                          <tr>
+                            <th className="table-header text-left w-14">Linha</th>
+                            <th className="table-header text-left">Erro</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-red-50">
+                          {importResult.errors.map((err, i) => (
+                            <tr key={i} className="bg-white">
+                              <td className="table-cell font-mono text-gray-400">{err.row}</td>
+                              <td className="table-cell text-red-500">{err.message}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2 border-t border-gray-100">
+                    <Button type="button" onClick={closeImport}>Fechar</Button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
