@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { getInitials, cn } from '../../utils';
+import { ConfirmModal } from '../ui/ConfirmModal';
 
 interface NavItem {
   label: string;
@@ -124,12 +125,14 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed]       = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const isAdmin = user?.userType === 'admin';
 
   const handleLogout = () => {
+    setConfirmLogout(false);
     logout();
     navigate('/login');
   };
@@ -141,11 +144,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) =
     onMobileClose,
     filtered,
     user,
-    onLogout: handleLogout,
+    onLogout: () => setConfirmLogout(true),
   };
 
   return (
     <>
+      <ConfirmModal
+        open={confirmLogout}
+        onClose={() => setConfirmLogout(false)}
+        onConfirm={handleLogout}
+        title="Sair do sistema"
+        description="Tem certeza que deseja encerrar sua sessão? Você precisará fazer login novamente para acessar o sistema."
+        confirmLabel="Sim, sair"
+        variant="danger"
+      />
+
       {/* Desktop Sidebar */}
       <aside className={cn(
         'hidden lg:flex flex-col bg-gray-900 transition-all duration-300 ease-in-out relative flex-shrink-0 overflow-visible',
