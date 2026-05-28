@@ -12,7 +12,7 @@ import {
 import type { OrderReviewStatus, OrderReviewItem } from './templates';
 
 // Resolve relative to this file — works in both src/ (dev) and dist/ (prod)
-const LOGO_PATH = path.resolve(__dirname, '../../../../apps/web/public/logoAlmoXpert.png');
+const LOGO_PATH = path.resolve(__dirname, '../../../../apps/web/public/iconeAlmoXpert.png');
 
 @Injectable()
 export class EmailService {
@@ -106,5 +106,22 @@ export class EmailService {
       return;
     }
     await this.send(to, `Atualização do seu pedido #${orderId} – AlmoxPert`, orderReviewTemplate(name, orderId, status, items, adminNotes));
+  }
+
+  async sendOrderDelivered(
+    to: string,
+    name: string,
+    orderId: number,
+    items: OrderReviewItem[],
+  ): Promise<void> {
+    if (!this.smtpConfigured) {
+      this.logger.log(`[DEV] E-mail de entrega do pedido #${orderId} enviado para ${name} <${this.maskEmail(to)}>`);
+      return;
+    }
+    await this.send(
+      to,
+      `Pedido #${orderId} entregue – AlmoxPert`,
+      orderReviewTemplate(name, orderId, 'delivered', items),
+    );
   }
 }

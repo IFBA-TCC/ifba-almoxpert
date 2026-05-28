@@ -13,8 +13,8 @@ export const baseTemplate = (content: string): string => `
 
           <!-- Header -->
           <tr>
-            <td align="center" style="background-color:#1e40af;padding:28px 40px;">
-              <img src="cid:almoxpert-logo" alt="AlmoxPert IFBA" style="height:56px;width:auto;display:block;" />
+            <td align="center" style="background-color:#ffffff;padding:28px 40px;border-bottom:1px solid #e5e7eb;">
+              <img src="cid:almoxpert-logo" alt="AlmoxPert IFBA" style="height:80px;width:auto;display:block;" />
             </td>
           </tr>
 
