@@ -257,6 +257,8 @@ All stock endpoints require `admin`.
 
 All shipments endpoints require `admin`. Stock is updated **only when** a shipment is **completed**.
 
+> **Atomic + concurrency-safe.** `complete` runs in a single transaction (stock increment + `IN` movement + status change), with a pessimistic write lock on each stock row. `create`, `update` and `delete` also wrap their multi-row writes in a transaction.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/shipments` | List (paginated + filters) |
@@ -336,6 +338,8 @@ Admin can adjust per-item quantities, toggle items off (approvedQuantity=0), and
 ### PATCH `/orders/:id/deliver`
 
 Deducts stock only for items where `approvedQuantity > 0`. Sends a delivery confirmation e-mail to the user (if `receiveEmails: true`).
+
+> **Atomic + concurrency-safe.** All stock decrements, their `OUT` movements and the status change run in a single DB transaction; any failure (e.g. insufficient stock on one line) rolls back the whole delivery. Each stock row is read under a pessimistic write lock (`SELECT ... FOR UPDATE`), so concurrent deliveries of the same item cannot oversell. The e-mail is sent only after commit.
 
 ### E-mails on review
 
@@ -426,6 +430,23 @@ Authorization from `userType` in the JWT payload — no separate roles table.
 | `PATCH /orders/:id/deliver` | Student | Delivery confirmation |
 
 All e-mails are fire-and-forget and respect `users.receive_emails`. Without SMTP configured, they are logged to console (dev mode).
+
+---
+
+## Transactions & Concurrency
+
+Stock-mutating endpoints are transactional and concurrency-safe:
+
+| Endpoint | Atomic unit | Stock row lock |
+|---|---|---|
+| `PATCH /orders/:id/deliver` | stock `OUT` + movement + status | Pessimistic (`FOR UPDATE`) |
+| `PATCH /shipments/:id/complete` | stock `IN` + movement + status | Pessimistic (`FOR UPDATE`) |
+| `POST /orders`, `PATCH /orders/:id/review` | header + items | — |
+| `POST/PATCH/DELETE /shipments/:id` | header + items | — |
+
+- Implemented with TypeORM `DataSource.transaction` + `pessimistic_write` locking (no schema change).
+- Side effects (e-mails) are dispatched **after** commit, never inside the transaction.
+- A failed transaction (e.g. `400 Insufficient stock`) leaves the database fully unchanged.
 
 ---
 

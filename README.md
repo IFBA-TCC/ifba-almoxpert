@@ -16,6 +16,7 @@
 - [Autenticação e Autorização](#autenticação-e-autorização)
 - [Variáveis de Ambiente](#variáveis-de-ambiente)
 - [Banco de Dados e Migrações](#banco-de-dados-e-migrações)
+- [Atomicidade e Controle de Concorrência](#atomicidade-e-controle-de-concorrência)
 - [LGPD](#lgpd)
 - [E-mails](#e-mails)
 - [Build e Produção](#build-e-produção)
@@ -33,6 +34,7 @@ AlmoXpert é um sistema **full-stack** de almoxarifado com:
 - **Remessas** — Registro de entradas de materiais; estoque atualizado apenas na conclusão
 - **Pedidos** — Solicitações de alunos com fluxo de aprovação editável e entrega
 - **Movimentações** — Auditoria completa de todas as entradas e saídas
+- **Atomicidade e Concorrência** — Operações de estoque transacionais com lock pessimista contra condições de corrida
 - **Importação em Massa** — Criação de alunos via planilha Excel
 - **E-mails Automáticos** — Boas-vindas, redefinição de senha, revisão e entrega de pedidos
 - **LGPD** — Portabilidade de dados, termos de uso, preferência de e-mails e limpeza automática de tokens
@@ -444,6 +446,27 @@ Get-Content database/migration_v9.sql | docker exec -i almoxpert_db_dev mysql -u
 
 ---
 
+## Atomicidade e Controle de Concorrência
+
+As operações que alteram o estoque e geram a trilha de auditoria são **transacionais**. Cada baixa/entrada de estoque, o respectivo movimento e a mudança de status são gravados dentro de uma única transação (`DataSource.transaction`): uma falha no meio do laço sofre *rollback* completo, então nunca existe estado parcialmente aplicado (ex.: estoque debitado sem o movimento correspondente registrado).
+
+Para evitar **condições de corrida** (dois processos lendo o mesmo saldo e ambos debitando), a leitura da linha de estoque dentro da transação adquire um **lock pessimista de escrita** (`SELECT ... FOR UPDATE`). Isso serializa mutações concorrentes sobre o mesmo item e impede que o disponível fique negativo / haja baixa além do estoque.
+
+| Operação | Escrita atômica | Lock de estoque |
+|---|---|---|
+| `PATCH /orders/:id/deliver` | Baixa de estoque + movimento `OUT` + status `delivered` | Pessimista (`FOR UPDATE`) |
+| `PATCH /shipments/:id/complete` | Entrada de estoque + movimento `IN` + status `completed` | Pessimista (`FOR UPDATE`) |
+| `POST /orders` · `PATCH /orders/:id/review` | Cabeçalho + itens / ajustes de quantidade | — (não toca estoque) |
+| `POST` · `PATCH` · `DELETE /shipments/:id` | Cabeçalho + substituição de itens | — (não toca estoque) |
+
+Notas de projeto:
+
+- **E-mails** são disparados **após** o commit (fire-and-forget), nunca dentro da transação — uma falha de SMTP não desfaz a baixa de estoque.
+- **Sem mudança de schema**: a estratégia é puramente de aplicação sobre o InnoDB; nenhuma migração é necessária.
+- O isolamento padrão do MySQL (`REPEATABLE READ`) somado ao lock de linha garante a serialização apenas das transações que disputam o **mesmo** item, preservando a concorrência entre itens distintos.
+
+---
+
 ## LGPD
 
 O sistema implementa as seguintes medidas de conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018):
@@ -549,4 +572,4 @@ Get-Content database/migration_v9.sql | docker exec -i almoxpert_db_dev mysql -u
 
 ---
 
-**Versão:** 1.3.0 | **Última atualização:** Maio de 2026 | IFBA — Trabalho de Conclusão de Curso
+**Versão:** 1.4.0 | **Última atualização:** Junho de 2026 | IFBA — Trabalho de Conclusão de Curso

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { ShipmentStatus, MovementType, MovementOrigin } from 'shared';
 import { Shipment } from './entities/shipment.entity';
 import { ShipmentItem } from './entities/shipment-item.entity';
@@ -28,6 +28,7 @@ export class ShipmentsService {
     private shipmentItemsRepo: Repository<ShipmentItem>,
     private stockService: StockService,
     private movementsService: MovementsService,
+    private dataSource: DataSource,
   ) {}
 
   async findAll(query: ShipmentsListQuery = {}) {
@@ -87,27 +88,35 @@ export class ShipmentsService {
    * O estoque NÃO é alterado aqui — apenas ao concluir (complete).
    */
   async create(dto: CreateShipmentDto, responsibleId: number) {
-    const shipment = await this.shipmentsRepo.save(
-      this.shipmentsRepo.create({
-        responsibleId,
-        notes:  dto.notes,
-        status: ShipmentStatus.OPEN,
-      }),
-    );
+    // Header + items committed atomically.
+    const shipmentId = await this.dataSource.transaction(async (manager) => {
+      const shipmentsRepo     = manager.getRepository(Shipment);
+      const shipmentItemsRepo = manager.getRepository(ShipmentItem);
 
-    for (const line of dto.items) {
-      await this.shipmentItemsRepo.save(
-        this.shipmentItemsRepo.create({
-          shipmentId:  shipment.id,
-          itemId:      line.itemId,
-          variationId: line.variationId ?? null,
-          quantity:    line.quantity,
-          size:        line.size ?? 'none',
+      const shipment = await shipmentsRepo.save(
+        shipmentsRepo.create({
+          responsibleId,
+          notes:  dto.notes,
+          status: ShipmentStatus.OPEN,
         }),
       );
-    }
 
-    return this.findOne(shipment.id);
+      for (const line of dto.items) {
+        await shipmentItemsRepo.save(
+          shipmentItemsRepo.create({
+            shipmentId:  shipment.id,
+            itemId:      line.itemId,
+            variationId: line.variationId ?? null,
+            quantity:    line.quantity,
+            size:        line.size ?? 'none',
+          }),
+        );
+      }
+
+      return shipment.id;
+    });
+
+    return this.findOne(shipmentId);
   }
 
   /**
@@ -115,28 +124,35 @@ export class ShipmentsService {
    * O estoque NÃO é tocado (ainda não foi lançado).
    */
   async update(id: number, dto: CreateShipmentDto) {
-    const shipment = await this.findOne(id);
+    // The item replacement (delete-then-reinsert) and the notes update run in
+    // one transaction, so a failure can never leave the shipment with its old
+    // items deleted and the new ones missing.
+    await this.dataSource.transaction(async (manager) => {
+      const shipmentsRepo     = manager.getRepository(Shipment);
+      const shipmentItemsRepo = manager.getRepository(ShipmentItem);
 
-    if (shipment.status !== ShipmentStatus.OPEN) {
-      throw new BadRequestException('Only open shipments can be edited');
-    }
+      const shipment = await shipmentsRepo.findOne({ where: { id } });
+      if (!shipment) throw new NotFoundException(`Shipment #${id} not found`);
+      if (shipment.status !== ShipmentStatus.OPEN) {
+        throw new BadRequestException('Only open shipments can be edited');
+      }
 
-    // Substituir itens
-    await this.shipmentItemsRepo.delete({ shipmentId: id });
+      await shipmentItemsRepo.delete({ shipmentId: id });
 
-    for (const line of dto.items) {
-      await this.shipmentItemsRepo.save(
-        this.shipmentItemsRepo.create({
-          shipmentId:  shipment.id,
-          itemId:      line.itemId,
-          variationId: line.variationId ?? null,
-          quantity:    line.quantity,
-          size:        line.size ?? 'none',
-        }),
-      );
-    }
+      for (const line of dto.items) {
+        await shipmentItemsRepo.save(
+          shipmentItemsRepo.create({
+            shipmentId:  shipment.id,
+            itemId:      line.itemId,
+            variationId: line.variationId ?? null,
+            quantity:    line.quantity,
+            size:        line.size ?? 'none',
+          }),
+        );
+      }
 
-    await this.shipmentsRepo.update(id, { notes: dto.notes ?? shipment.notes });
+      await shipmentsRepo.update(id, { notes: dto.notes ?? shipment.notes });
+    });
 
     return this.findOne(id);
   }
@@ -145,31 +161,41 @@ export class ShipmentsService {
    * Conclui a remessa: incrementa o estoque e registra os movimentos de entrada.
    */
   async complete(id: number) {
-    const shipment = await this.findOne(id);
+    // Atomic completion: every stock increment, its IN movement and the status
+    // change commit together. Stock rows are read under a pessimistic write
+    // lock, so a concurrent delivery/completion on the same item is serialized.
+    return this.dataSource.transaction(async (manager) => {
+      const shipmentsRepo = manager.getRepository(Shipment);
 
-    if (shipment.status !== ShipmentStatus.OPEN) {
-      throw new BadRequestException('Only open shipments can be completed');
-    }
-
-    for (const line of shipment.items) {
-      const size        = line.size ?? 'none';
-      const variationId = line.variationId ?? null;
-
-      await this.stockService.increaseQuantity(line.itemId, variationId, size, line.quantity);
-
-      await this.movementsService.record({
-        itemId:       line.itemId,
-        variationId,
-        size,
-        movementType: MovementType.IN,
-        quantity:     line.quantity,
-        originType:   MovementOrigin.SHIPMENT,
-        originId:     shipment.id,
+      const shipment = await shipmentsRepo.findOne({
+        where: { id },
+        relations: ['items', 'items.item', 'items.variation', 'responsible'],
       });
-    }
+      if (!shipment) throw new NotFoundException(`Shipment #${id} not found`);
+      if (shipment.status !== ShipmentStatus.OPEN) {
+        throw new BadRequestException('Only open shipments can be completed');
+      }
 
-    shipment.status = ShipmentStatus.COMPLETED;
-    return this.shipmentsRepo.save(shipment);
+      for (const line of shipment.items) {
+        const size        = line.size ?? 'none';
+        const variationId = line.variationId ?? null;
+
+        await this.stockService.increaseQuantity(line.itemId, variationId, size, line.quantity, manager);
+
+        await this.movementsService.record({
+          itemId:       line.itemId,
+          variationId,
+          size,
+          movementType: MovementType.IN,
+          quantity:     line.quantity,
+          originType:   MovementOrigin.SHIPMENT,
+          originId:     shipment.id,
+        }, manager);
+      }
+
+      shipment.status = ShipmentStatus.COMPLETED;
+      return shipmentsRepo.save(shipment);
+    });
   }
 
   /**
@@ -192,13 +218,19 @@ export class ShipmentsService {
    * Como o estoque ainda não foi lançado, nenhuma reversão é necessária.
    */
   async remove(id: number) {
-    const shipment = await this.findOne(id);
+    // Items and header are removed in one transaction.
+    await this.dataSource.transaction(async (manager) => {
+      const shipmentsRepo     = manager.getRepository(Shipment);
+      const shipmentItemsRepo = manager.getRepository(ShipmentItem);
 
-    if (shipment.status !== ShipmentStatus.OPEN) {
-      throw new BadRequestException('Only open shipments can be deleted');
-    }
+      const shipment = await shipmentsRepo.findOne({ where: { id } });
+      if (!shipment) throw new NotFoundException(`Shipment #${id} not found`);
+      if (shipment.status !== ShipmentStatus.OPEN) {
+        throw new BadRequestException('Only open shipments can be deleted');
+      }
 
-    await this.shipmentItemsRepo.delete({ shipmentId: id });
-    await this.shipmentsRepo.delete(id);
+      await shipmentItemsRepo.delete({ shipmentId: id });
+      await shipmentsRepo.delete(id);
+    });
   }
 }

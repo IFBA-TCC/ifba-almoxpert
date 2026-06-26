@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { MovementType, MovementOrigin } from 'shared';
 import { StockMovement } from './entities/stock-movement.entity';
 
@@ -37,9 +37,14 @@ export class MovementsService {
     private movementsRepo: Repository<StockMovement>,
   ) {}
 
-  /** Creates a movement audit record. Called internally by Shipments and Orders. */
-  record(params: RecordMovementParams) {
-    return this.movementsRepo.save(this.movementsRepo.create(params));
+  /**
+   * Creates a movement audit record. Called internally by Shipments and Orders.
+   * Pass the transactional `manager` so the record is written inside the same
+   * transaction as the stock mutation it documents (atomic audit trail).
+   */
+  record(params: RecordMovementParams, manager?: EntityManager) {
+    const repo = manager ? manager.getRepository(StockMovement) : this.movementsRepo;
+    return repo.save(repo.create(params));
   }
 
   async findAll(query: MovementsListQuery = {}) {

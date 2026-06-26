@@ -2,7 +2,7 @@ import {
   Injectable, NotFoundException, ForbiddenException, BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { OrderStatus, UserType, MovementType, MovementOrigin, JwtPayload } from 'shared';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
@@ -35,6 +35,7 @@ export class OrdersService {
     private stockService: StockService,
     private movementsService: MovementsService,
     private emailService: EmailService,
+    private dataSource: DataSource,
   ) {}
 
   /** Students see only their own orders; admins see all */
@@ -111,72 +112,89 @@ export class OrdersService {
   /** Students or admin (on behalf of a student) place orders */
   async create(dto: CreateOrderDto, requestingUserId: number) {
     const targetUserId = dto.userId ? Number(dto.userId) : requestingUserId;
-    const order = await this.ordersRepo.save(
-      this.ordersRepo.create({ userId: targetUserId }),
-    );
 
-    for (const line of dto.items) {
-      const size       = line.size ?? 'none';
-      const variationId = line.variationId ?? null;
-      await this.orderItemsRepo.save(
-        this.orderItemsRepo.create({
-          orderId:           order.id,
-          itemId:            line.itemId,
-          variationId,
-          requestedQuantity: line.requestedQuantity,
-          size,
-        }),
-      );
-    }
+    // Header + line items are written atomically: a partially-saved order
+    // (header without its items) can never be persisted.
+    const orderId = await this.dataSource.transaction(async (manager) => {
+      const ordersRepo     = manager.getRepository(Order);
+      const orderItemsRepo = manager.getRepository(OrderItem);
+
+      const order = await ordersRepo.save(ordersRepo.create({ userId: targetUserId }));
+
+      for (const line of dto.items) {
+        const size        = line.size ?? 'none';
+        const variationId = line.variationId ?? null;
+        await orderItemsRepo.save(
+          orderItemsRepo.create({
+            orderId:           order.id,
+            itemId:            line.itemId,
+            variationId,
+            requestedQuantity: line.requestedQuantity,
+            size,
+          }),
+        );
+      }
+
+      return order.id;
+    });
 
     return this.ordersRepo.findOne({
-      where: { id: order.id },
+      where: { id: orderId },
       relations: ['items', 'items.item', 'items.variation'],
     });
   }
 
   /** Admin approves or rejects an order */
   async review(id: number, dto: ReviewOrderDto, adminId: number) {
-    const order = await this.ordersRepo.findOne({
-      where: { id },
-      relations: ['items', 'items.item', 'user'],
-    });
+    // All quantity adjustments, new-item insertions and the status change are
+    // committed atomically; a failure mid-review leaves the order untouched.
+    const order = await this.dataSource.transaction(async (manager) => {
+      const ordersRepo     = manager.getRepository(Order);
+      const orderItemsRepo = manager.getRepository(OrderItem);
 
-    if (!order) throw new NotFoundException(`Order #${id} not found`);
+      const ord = await ordersRepo.findOne({
+        where: { id },
+        relations: ['items', 'items.item', 'user'],
+      });
 
-    if (order.status !== OrderStatus.PENDING) {
-      throw new BadRequestException('Only pending orders can be reviewed');
-    }
+      if (!ord) throw new NotFoundException(`Order #${id} not found`);
 
-    order.status       = dto.status;
-    order.adminNotes   = dto.adminNotes;
-    order.approvedBy   = adminId;
-    order.approvalDate = new Date();
+      if (ord.status !== OrderStatus.PENDING) {
+        throw new BadRequestException('Only pending orders can be reviewed');
+      }
 
-    if (dto.status === OrderStatus.APPROVED) {
-      for (const reviewLine of dto.items ?? []) {
-        const orderItem = order.items.find((oi) => Number(oi.id) === Number(reviewLine.orderItemId));
-        if (orderItem) {
-          orderItem.approvedQuantity = reviewLine.approvedQuantity;
-          await this.orderItemsRepo.save(orderItem);
+      ord.status       = dto.status;
+      ord.adminNotes   = dto.adminNotes;
+      ord.approvedBy   = adminId;
+      ord.approvalDate = new Date();
+
+      if (dto.status === OrderStatus.APPROVED) {
+        for (const reviewLine of dto.items ?? []) {
+          const orderItem = ord.items.find((oi) => Number(oi.id) === Number(reviewLine.orderItemId));
+          if (orderItem) {
+            orderItem.approvedQuantity = reviewLine.approvedQuantity;
+            await orderItemsRepo.save(orderItem);
+          }
+        }
+
+        for (const newLine of dto.newItems ?? []) {
+          await orderItemsRepo.save(
+            orderItemsRepo.create({
+              orderId:           Number(ord.id),
+              itemId:            Number(newLine.itemId),
+              variationId:       newLine.variationId ? Number(newLine.variationId) : null,
+              size:              newLine.size ?? 'none',
+              requestedQuantity: 0,
+              approvedQuantity:  newLine.approvedQuantity,
+            }),
+          );
         }
       }
 
-      for (const newLine of dto.newItems ?? []) {
-        await this.orderItemsRepo.save(
-          this.orderItemsRepo.create({
-            orderId:           Number(order.id),
-            itemId:            Number(newLine.itemId),
-            variationId:       newLine.variationId ? Number(newLine.variationId) : null,
-            size:              newLine.size ?? 'none',
-            requestedQuantity: 0,
-            approvedQuantity:  newLine.approvedQuantity,
-          }),
-        );
-      }
-    }
+      return ordersRepo.save(ord);
+    });
 
-    const saved = await this.ordersRepo.save(order);
+    const saved = order;
 
     if (order.user?.receiveEmails) {
       const hasChanges = dto.status === OrderStatus.APPROVED && (
@@ -219,35 +237,45 @@ export class OrdersService {
 
   /** Admin marks an approved order as delivered and deducts stock */
   async deliver(id: number) {
-    const order = await this.ordersRepo.findOne({
-      where: { id },
-      relations: ['items', 'items.item', 'user'],
+    // Atomic delivery: every stock decrement and its OUT movement, plus the
+    // status change, commit together. Stock rows are read under a pessimistic
+    // write lock, so concurrent deliveries cannot oversell. Any failure
+    // (e.g. insufficient stock on the 3rd line) rolls back the whole delivery.
+    const order = await this.dataSource.transaction(async (manager) => {
+      const ordersRepo = manager.getRepository(Order);
+
+      const ord = await ordersRepo.findOne({
+        where: { id },
+        relations: ['items', 'items.item', 'user'],
+      });
+
+      if (!ord) throw new NotFoundException(`Order #${id} not found`);
+      if (ord.status !== OrderStatus.APPROVED) {
+        throw new BadRequestException('Only approved orders can be delivered');
+      }
+
+      for (const line of ord.items) {
+        const qty = line.approvedQuantity ?? 0;
+        if (qty <= 0) continue;
+
+        const size = line.size ?? 'none';
+        await this.stockService.decreaseQuantity(line.itemId, line.variationId, size, qty, manager);
+        await this.movementsService.record({
+          itemId:       line.itemId,
+          variationId:  line.variationId,
+          size,
+          movementType: MovementType.OUT,
+          quantity:     qty,
+          originType:   MovementOrigin.ORDER,
+          originId:     ord.id,
+        }, manager);
+      }
+
+      ord.status = OrderStatus.DELIVERED;
+      return ordersRepo.save(ord);
     });
 
-    if (!order) throw new NotFoundException(`Order #${id} not found`);
-    if (order.status !== OrderStatus.APPROVED) {
-      throw new BadRequestException('Only approved orders can be delivered');
-    }
-
-    for (const line of order.items) {
-      const qty = line.approvedQuantity ?? 0;
-      if (qty <= 0) continue;
-
-      const size = line.size ?? 'none';
-      await this.stockService.decreaseQuantity(line.itemId, line.variationId, size, qty);
-      await this.movementsService.record({
-        itemId:       line.itemId,
-        variationId:  line.variationId,
-        size,
-        movementType: MovementType.OUT,
-        quantity:     qty,
-        originType:   MovementOrigin.ORDER,
-        originId:     order.id,
-      });
-    }
-
-    order.status = OrderStatus.DELIVERED;
-    const saved = await this.ordersRepo.save(order);
+    const saved = order;
 
     if (order.user?.receiveEmails) {
       const emailItems: OrderReviewItem[] = order.items
