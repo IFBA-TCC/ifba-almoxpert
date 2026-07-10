@@ -53,6 +53,7 @@ export const orderReviewTemplate = (
   status: OrderReviewStatus,
   items: OrderReviewItem[],
   adminNotes?: string | null,
+  showLogo = true,
 ): string => {
   const cfg = statusConfig[status];
   const isDelivered  = status === 'delivered';
@@ -127,5 +128,5 @@ export const orderReviewTemplate = (
     <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">
       Em caso de d&uacute;vidas, procure a administra&ccedil;&atilde;o do almoxarifado.
     </p>
-  `);
+  `, { showLogo });
 };

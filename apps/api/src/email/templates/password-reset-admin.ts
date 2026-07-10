@@ -1,6 +1,6 @@
 import { baseTemplate } from './base';
 
-export const passwordResetAdminTemplate = (name: string, defaultPassword: string): string =>
+export const passwordResetAdminTemplate = (name: string, defaultPassword: string, showLogo = true): string =>
   baseTemplate(`
     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;">
       Senha redefinida pelo administrador
@@ -29,4 +29,4 @@ export const passwordResetAdminTemplate = (name: string, defaultPassword: string
     <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">
       Se voc&ecirc; n&atilde;o esperava essa altera&ccedil;&atilde;o, entre em contato com a administra&ccedil;&atilde;o do sistema.
     </p>
-  `);
+  `, { showLogo });
