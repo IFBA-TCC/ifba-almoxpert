@@ -21,17 +21,20 @@ export class EmailService {
   constructor(private config: ConfigService) {
     const user = config.get<string>('SMTP_USER', '');
     const pass = config.get<string>('SMTP_PASS', '');
-    const secure = this.parseBoolean(config.get<string>('SMTP_SECURE', 'false'));
+    const host = config.get<string>('SMTP_HOST', 'smtp.gmail.com');
+    const port = this.parseNumber(config.get<string>('SMTP_PORT'), 587);
+    const secure = this.resolveSecure(port, config.get<string>('SMTP_SECURE'));
     this.smtpConfigured = !!(user && pass);
     this.logoAttachment = this.resolveLogoAttachment();
 
     if (this.smtpConfigured) {
       this.transporter = nodemailer.createTransport({
-        host:   config.get<string>('SMTP_HOST', 'smtp.gmail.com'),
-        port:   config.get<number>('SMTP_PORT', 587),
+        host,
+        port,
         secure,
         auth:   { user, pass },
       });
+      this.logger.log(`SMTP configurado em ${host}:${port} (${secure ? 'TLS implícito' : 'STARTTLS/sem TLS implícito'})`);
     } else {
       this.logger.warn('SMTP não configurado. E-mails serão exibidos no console.');
     }
@@ -44,6 +47,18 @@ export class EmailService {
 
   private parseBoolean(value: string): boolean {
     return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+  }
+
+  private parseNumber(value: string | undefined, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private resolveSecure(port: number, value?: string): boolean {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return this.parseBoolean(value);
+    }
+    return port === 465;
   }
 
   private resolveLogoAttachment(): { filename: string; path: string; cid: string } | null {
