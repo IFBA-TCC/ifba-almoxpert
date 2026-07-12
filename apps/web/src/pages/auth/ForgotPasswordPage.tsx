@@ -86,10 +86,16 @@ export const ForgotPasswordPage: React.FC = () => {
   // ── Step 2 ──
   const codeForm = useForm<CodeForm>({ resolver: zodResolver(codeSchema) });
 
-  const onCodeSubmit = (data: CodeForm) => {
-    setCode(data.code);
+  const onCodeSubmit = async (data: CodeForm) => {
     setApiError('');
-    setStep(3);
+    try {
+      await authService.validateResetCode(email, data.code);
+      setCode(data.code);
+      setStep(3);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      setApiError(msg || 'Código inválido ou expirado. Verifique e tente novamente.');
+    }
   };
 
   // ── Step 3 ──
@@ -188,7 +194,14 @@ export const ForgotPasswordPage: React.FC = () => {
                 error={codeForm.formState.errors.code?.message}
                 {...codeForm.register('code')}
               />
-              <Button type="submit" className="w-full" size="lg">
+
+              {apiError && (
+                <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+                  {apiError}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" size="lg" loading={codeForm.formState.isSubmitting}>
                 Próximo
               </Button>
             </form>

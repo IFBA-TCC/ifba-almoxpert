@@ -13,6 +13,7 @@ import { OrderItem } from '../orders/entities/order-item.entity';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtPayload } from 'shared';
 
@@ -81,6 +82,29 @@ export class AuthService {
     await this.emailService.sendPasswordResetCode(user.email, user.name, code);
 
     return { message: 'Se o e-mail estiver cadastrado, você receberá um código em breve.' };
+  }
+
+  /**
+   * Valida um código de redefinição SEM consumi-lo — usado pelo passo
+   * intermediário do fluxo (antes de o usuário escolher a nova senha).
+   * Mesma mensagem genérica para não revelar se o e-mail existe.
+   */
+  async validateResetCode(dto: ValidateResetCodeDto) {
+    const user = await this.usersService.findByEmail(dto.email);
+    if (!user) throw new BadRequestException('Código inválido ou expirado');
+
+    const tokenRecord = await this.resetTokensRepo.findOne({
+      where: {
+        userId:    user.id,
+        token:     dto.code,
+        used:      false,
+        expiresAt: MoreThan(new Date()),
+      },
+    });
+
+    if (!tokenRecord) throw new BadRequestException('Código inválido ou expirado');
+
+    return { valid: true };
   }
 
   async resetPassword(dto: ResetPasswordDto) {

@@ -242,6 +242,7 @@ GET  /health
 ```
 POST   /auth/login                # Login — retorna JWT
 POST   /auth/forgot-password      # Envia código de redefinição por e-mail
+POST   /auth/validate-reset-code  # Valida o código de redefinição (sem consumir)
 POST   /auth/reset-password       # Redefine senha com código
 PATCH  /auth/change-password      # Altera senha (autenticado)
 PATCH  /auth/preferences          # Atualiza preferência de e-mails

@@ -67,6 +67,19 @@ Always returns 200 regardless of whether the e-mail exists (prevents user enumer
 
 ---
 
+### POST `/auth/validate-reset-code`
+
+Public. Validates the 6-digit code **without consuming it** — used by the intermediate step of the reset flow, so an invalid code is caught before the user reaches the new-password screen.
+
+**Body**
+```json
+{ "email": "user@ifba.edu.br", "code": "123456" }
+```
+
+Returns `{ "valid": true }` on success, or `400 Código inválido ou expirado` otherwise (same generic message, no user enumeration). The code stays valid for the final `reset-password` call.
+
+---
+
 ### POST `/auth/reset-password`
 
 Public. Resets password using the code received by e-mail.

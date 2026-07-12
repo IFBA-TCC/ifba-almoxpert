@@ -24,6 +24,11 @@ export const authService = {
     return data;
   },
 
+  async validateResetCode(email: string, code: string): Promise<{ valid: boolean }> {
+    const { data } = await api.post('/auth/validate-reset-code', { email, code });
+    return data;
+  },
+
   async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
     const { data } = await api.post('/auth/reset-password', { email, code, newPassword });
     return data;

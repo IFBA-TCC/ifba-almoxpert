@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 
@@ -28,6 +29,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Solicitar redefinição de senha via e-mail' })
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
+  }
+
+  @Post('validate-reset-code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Validar o código de redefinição (sem consumi-lo)' })
+  validateResetCode(@Body() dto: ValidateResetCodeDto) {
+    return this.authService.validateResetCode(dto);
   }
 
   @Post('reset-password')
