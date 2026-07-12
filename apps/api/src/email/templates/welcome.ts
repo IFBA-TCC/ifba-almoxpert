@@ -1,6 +1,6 @@
 import { baseTemplate } from './base';
 
-export const welcomeTemplate = (name: string, email: string, password: string): string =>
+export const welcomeTemplate = (name: string, email: string, password: string, showLogo = true): string =>
   baseTemplate(`
     <h2 style="margin:0 0 4px;font-size:22px;font-weight:700;color:#111827;">
       Bem-vindo ao AlmoxPert!
@@ -46,4 +46,4 @@ export const welcomeTemplate = (name: string, email: string, password: string): 
     <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">
       Em caso de d&uacute;vidas, procure a administra&ccedil;&atilde;o do almoxarifado.
     </p>
-  `);
+  `, { showLogo });

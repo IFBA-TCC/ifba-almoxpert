@@ -1,4 +1,11 @@
-export const baseTemplate = (content: string): string => `
+interface BaseTemplateOptions {
+  showLogo?: boolean;
+}
+
+export const baseTemplate = (
+  content: string,
+  { showLogo = true }: BaseTemplateOptions = {},
+): string => `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -14,7 +21,10 @@ export const baseTemplate = (content: string): string => `
           <!-- Header -->
           <tr>
             <td align="center" style="background-color:#ffffff;padding:28px 40px;border-bottom:1px solid #e5e7eb;">
-              <img src="cid:almoxpert-logo" alt="AlmoxPert IFBA" style="height:80px;width:auto;display:block;" />
+              ${showLogo
+                ? '<img src="cid:almoxpert-logo" alt="AlmoxPert IFBA" style="height:80px;width:auto;display:block;" />'
+                : '<p style="margin:0;font-size:28px;font-weight:800;letter-spacing:0.5px;color:#111827;">AlmoxPert <span style="color:#16a34a;">IFBA</span></p>'
+              }
             </td>
           </tr>
 

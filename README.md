@@ -395,9 +395,11 @@ PORT=3000
 # E-mail (opcional — sem config os e-mails são logados no console em dev)
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
+SMTP_SECURE=false
 SMTP_USER=noreply@example.com
 SMTP_PASS=senha
 SMTP_FROM="AlmoXpert <noreply@example.com>"
+EMAIL_LOGO_PATH=/app/apps/web/public/iconeAlmoXpert.png
 ```
 
 > Em produção use uma `JWT_SECRET` forte (mínimo 32 caracteres aleatórios) e credenciais de banco dedicadas.

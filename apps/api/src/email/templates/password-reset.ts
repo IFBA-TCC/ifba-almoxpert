@@ -1,6 +1,6 @@
 import { baseTemplate } from './base';
 
-export const passwordResetTemplate = (name: string, code: string): string =>
+export const passwordResetTemplate = (name: string, code: string, showLogo = true): string =>
   baseTemplate(`
     <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;">
       Redefini&ccedil;&atilde;o de senha
@@ -27,4 +27,4 @@ export const passwordResetTemplate = (name: string, code: string): string =>
     <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">
       Se voc&ecirc; n&atilde;o solicitou a redefini&ccedil;&atilde;o, ignore este e-mail com seguran&ccedil;a.
     </p>
-  `);
+  `, { showLogo });

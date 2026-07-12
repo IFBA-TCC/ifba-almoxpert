@@ -11,42 +11,74 @@ import {
 } from './templates';
 import type { OrderReviewStatus, OrderReviewItem } from './templates';
 
-// Resolve relative to this file — works in both src/ (dev) and dist/ (prod)
-const LOGO_PATH = path.resolve(__dirname, '../../../../apps/web/public/iconeAlmoXpert.png');
-
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: nodemailer.Transporter | null = null;
   private smtpConfigured: boolean;
+  private readonly logoAttachment: { filename: string; path: string; cid: string } | null;
 
   constructor(private config: ConfigService) {
     const user = config.get<string>('SMTP_USER', '');
     const pass = config.get<string>('SMTP_PASS', '');
+    const host = config.get<string>('SMTP_HOST', 'smtp.gmail.com');
+    const port = this.parseNumber(config.get<string>('SMTP_PORT'), 587);
+    const secure = this.resolveSecure(port, config.get<string>('SMTP_SECURE'));
     this.smtpConfigured = !!(user && pass);
+    this.logoAttachment = this.resolveLogoAttachment();
 
     if (this.smtpConfigured) {
       this.transporter = nodemailer.createTransport({
-        host:   config.get<string>('SMTP_HOST', 'smtp.gmail.com'),
-        port:   config.get<number>('SMTP_PORT', 587),
-        secure: false,
+        host,
+        port,
+        secure,
         auth:   { user, pass },
       });
+      this.logger.log(`SMTP configurado em ${host}:${port} (${secure ? 'TLS implícito' : 'STARTTLS/sem TLS implícito'})`);
     } else {
       this.logger.warn('SMTP não configurado. E-mails serão exibidos no console.');
     }
   }
 
   private get from(): string {
-    return `"AlmoxPert IFBA" <${this.config.get('SMTP_USER')}>`;
+    return this.config.get<string>('SMTP_FROM')
+      || `"AlmoxPert IFBA" <${this.config.get('SMTP_USER')}>`;
   }
 
-  private buildAttachments(): { filename: string; path: string; cid: string }[] {
-    if (!fs.existsSync(LOGO_PATH)) {
-      this.logger.warn(`Logo não encontrada em: ${LOGO_PATH}`);
-      return [];
+  private parseBoolean(value: string): boolean {
+    return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+  }
+
+  private parseNumber(value: string | undefined, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private resolveSecure(port: number, value?: string): boolean {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return this.parseBoolean(value);
     }
-    return [{ filename: 'logo.png', path: LOGO_PATH, cid: 'almoxpert-logo' }];
+    return port === 465;
+  }
+
+  private resolveLogoAttachment(): { filename: string; path: string; cid: string } | null {
+    const configuredLogoPath = this.config.get<string>('EMAIL_LOGO_PATH');
+    const candidatePaths = [
+      configuredLogoPath,
+      path.resolve(process.cwd(), 'apps/api/public/iconeAlmoXpert.png'),
+      path.resolve(process.cwd(), 'apps/web/public/iconeAlmoXpert.png'),
+      path.resolve(__dirname, '../public/iconeAlmoXpert.png'),
+      path.resolve(__dirname, '../../../../apps/web/public/iconeAlmoXpert.png'),
+    ].filter((candidate): candidate is string => !!candidate);
+
+    for (const candidatePath of candidatePaths) {
+      if (fs.existsSync(candidatePath)) {
+        return { filename: 'logo.png', path: candidatePath, cid: 'almoxpert-logo' };
+      }
+    }
+
+    this.logger.warn(`Logo do e-mail não encontrada. Caminhos verificados: ${candidatePaths.join(', ')}`);
+    return null;
   }
 
   private maskEmail(email: string): string {
@@ -62,7 +94,7 @@ export class EmailService {
         to,
         subject,
         html,
-        attachments: this.buildAttachments(),
+        attachments: this.logoAttachment ? [this.logoAttachment] : [],
       });
     } catch (err) {
       this.logger.error(`Falha ao enviar e-mail (${this.maskEmail(to)}): ${subject}`, err);
@@ -74,7 +106,7 @@ export class EmailService {
       this.logger.log(`[DEV] E-mail de boas-vindas enviado para ${name} <${this.maskEmail(to)}>`);
       return;
     }
-    await this.send(to, 'Bem-vindo ao AlmoxPert – IFBA', welcomeTemplate(name, to, password));
+    await this.send(to, 'Bem-vindo ao AlmoxPert – IFBA', welcomeTemplate(name, to, password, !!this.logoAttachment));
   }
 
   async sendPasswordResetCode(to: string, name: string, code: string): Promise<void> {
@@ -82,7 +114,7 @@ export class EmailService {
       this.logger.log(`[DEV] E-mail de redefinição de senha enviado para ${name} <${this.maskEmail(to)}>`);
       return;
     }
-    await this.send(to, 'Código de Redefinição de Senha – AlmoxPert', passwordResetTemplate(name, code));
+    await this.send(to, 'Código de Redefinição de Senha – AlmoxPert', passwordResetTemplate(name, code, !!this.logoAttachment));
   }
 
   async sendPasswordResetByAdmin(to: string, name: string, defaultPassword: string): Promise<void> {
@@ -90,7 +122,11 @@ export class EmailService {
       this.logger.log(`[DEV] E-mail de reset de senha (admin) enviado para ${name} <${this.maskEmail(to)}>`);
       return;
     }
-    await this.send(to, 'Sua Senha foi Redefinida – AlmoxPert', passwordResetAdminTemplate(name, defaultPassword));
+    await this.send(
+      to,
+      'Sua Senha foi Redefinida – AlmoxPert',
+      passwordResetAdminTemplate(name, defaultPassword, !!this.logoAttachment),
+    );
   }
 
   async sendOrderReview(
@@ -105,7 +141,11 @@ export class EmailService {
       this.logger.log(`[DEV] E-mail de revisão do pedido #${orderId} enviado para ${name} <${this.maskEmail(to)}> — status: ${status}`);
       return;
     }
-    await this.send(to, `Atualização do seu pedido #${orderId} – AlmoxPert`, orderReviewTemplate(name, orderId, status, items, adminNotes));
+    await this.send(
+      to,
+      `Atualização do seu pedido #${orderId} – AlmoxPert`,
+      orderReviewTemplate(name, orderId, status, items, adminNotes, !!this.logoAttachment),
+    );
   }
 
   async sendOrderDelivered(
@@ -121,7 +161,7 @@ export class EmailService {
     await this.send(
       to,
       `Pedido #${orderId} entregue – AlmoxPert`,
-      orderReviewTemplate(name, orderId, 'delivered', items),
+      orderReviewTemplate(name, orderId, 'delivered', items, undefined, !!this.logoAttachment),
     );
   }
 }
