@@ -153,12 +153,12 @@ export const ItemsPage: React.FC = () => {
       render: (item: Item) => (
         <div className="flex items-center gap-3">
           <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${item.isActive ? 'bg-blue-50' : 'bg-gray-100'}`}>
-            <Package size={14} className={item.isActive ? 'text-blue-600' : 'text-gray-400'} />
+            <Package size={14} className={item.isActive ? 'text-blue-600' : 'text-gray-500'} />
           </div>
           <div>
-            <p className={`font-medium ${item.isActive ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{item.name}</p>
+            <p className={`font-medium ${item.isActive ? 'text-gray-800' : 'text-gray-500 line-through'}`}>{item.name}</p>
             <div className="flex items-center gap-2">
-              {item.type && <p className="text-xs text-gray-400">{item.type}</p>}
+              {item.type && <p className="text-xs text-gray-500">{item.type}</p>}
               {item.sizeType && item.sizeType !== 'none' && (
                 <span className="text-xs text-blue-500 font-medium">{sizeTypeLabel[item.sizeType]}</span>
               )}
@@ -184,13 +184,13 @@ export const ItemsPage: React.FC = () => {
                   className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
                     v.isActive
                       ? 'bg-gray-100 text-gray-700 border-gray-200'
-                      : 'bg-gray-50 text-gray-400 border-gray-100 line-through'
+                      : 'bg-gray-50 text-gray-500 border-gray-100 line-through'
                   }`}
                 >
                   {v.description}
                 </span>
               ))
-            : <span className="text-gray-400 text-xs">Sem variações</span>
+            : <span className="text-gray-500 text-xs">Sem variações</span>
           }
         </div>
       ),
@@ -225,13 +225,15 @@ export const ItemsPage: React.FC = () => {
         <div className="flex items-center gap-1 justify-end">
           <button
             onClick={() => openEdit(item)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            aria-label="Editar item"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
           >
             <Pencil size={14} />
           </button>
           <button
             onClick={() => setDeleteItem(item)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500Bg transition-colors"
+            aria-label="Excluir item"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-500Bg transition-colors"
           >
             <Trash2 size={14} />
           </button>

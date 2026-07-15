@@ -33,7 +33,7 @@ type FormData = z.infer<typeof schema>;
 
 const InfoRow: React.FC<{ label: string; value?: string | number | null; span?: boolean }> = ({ label, value, span }) => (
   <div className={`py-3 border-b border-gray-100 last:border-0 ${span ? 'sm:col-span-2' : ''}`}>
-    <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+    <p className="text-xs text-gray-500 mb-0.5">{label}</p>
     <p className="text-sm font-medium text-gray-800">{value ?? '—'}</p>
   </div>
 );
@@ -94,7 +94,7 @@ export const ProfilePage: React.FC = () => {
         </button>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Meu Perfil</h1>
-          <p className="text-sm text-gray-400">Suas informações e configurações de conta</p>
+          <p className="text-sm text-gray-500">Suas informações e configurações de conta</p>
         </div>
       </div>
 
@@ -107,7 +107,7 @@ export const ProfilePage: React.FC = () => {
           </div>
           <div>
             <p className="text-lg font-bold text-gray-900">{name}</p>
-            <p className="text-sm text-gray-400">{email}</p>
+            <p className="text-sm text-gray-500">{email}</p>
             <span className={`mt-1 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
               isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
             }`}>
@@ -151,7 +151,7 @@ export const ProfilePage: React.FC = () => {
 
                 {/* Auxílios com cor por tipo */}
                 <div className="py-3 border-b border-gray-100 sm:col-span-2">
-                  <p className="text-xs text-gray-400 mb-1.5">Bolsas / Auxílios</p>
+                  <p className="text-xs text-gray-500 mb-1.5">Bolsas / Auxílios</p>
                   {profile?.aids?.length ? (
                     <div className="flex flex-wrap gap-1.5">
                       {profile.aids.map((aid) => (
@@ -191,7 +191,7 @@ export const ProfilePage: React.FC = () => {
             <Input label="Senha atual" type={showCurrent ? 'text' : 'password'} placeholder="••••••••"
               error={errors.currentPassword?.message} {...register('currentPassword')} />
             <button type="button" onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+              className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
               {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
@@ -200,7 +200,7 @@ export const ProfilePage: React.FC = () => {
             <Input label="Nova senha" type={showNew ? 'text' : 'password'} placeholder="••••••••"
               error={errors.newPassword?.message} {...register('newPassword')} />
             <button type="button" onClick={() => setShowNew(!showNew)}
-              className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+              className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
               {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
@@ -209,7 +209,7 @@ export const ProfilePage: React.FC = () => {
             <Input label="Confirmar nova senha" type={showConfirm ? 'text' : 'password'} placeholder="••••••••"
               error={errors.confirmPassword?.message} {...register('confirmPassword')} />
             <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+              className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
               {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
@@ -227,7 +227,7 @@ export const ProfilePage: React.FC = () => {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-gray-800">Portabilidade de dados (LGPD art. 18)</p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Baixe um arquivo JSON com seu perfil completo e histórico de pedidos.
             </p>
           </div>
@@ -252,7 +252,7 @@ export const ProfilePage: React.FC = () => {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-gray-800">Receber e-mails do sistema</p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5">
               Atualizações sobre seus pedidos e avisos importantes.
             </p>
           </div>

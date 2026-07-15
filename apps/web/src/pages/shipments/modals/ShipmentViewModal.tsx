@@ -31,7 +31,7 @@ export const ShipmentViewModal: React.FC<ShipmentViewModalProps> = ({
       <button
         title="Excluir remessa"
         onClick={() => onDelete(shipment!)}
-        className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-200 transition-colors"
+        className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 border border-gray-200 transition-colors"
       >
         <Trash2 size={15} />
       </button>
@@ -67,8 +67,8 @@ export const ShipmentViewModal: React.FC<ShipmentViewModalProps> = ({
               {shipment.items?.map((item) => (
                 <tr key={item.id}>
                   <td className="table-cell">{item.item?.name}</td>
-                  <td className="table-cell text-gray-400">{item.variation?.description ?? '—'}</td>
-                  <td className="table-cell text-gray-400">{item.size === 'none' ? '—' : item.size}</td>
+                  <td className="table-cell text-gray-500">{item.variation?.description ?? '—'}</td>
+                  <td className="table-cell text-gray-500">{item.size === 'none' ? '—' : item.size}</td>
                   <td className="table-cell text-right font-mono">{item.quantity}</td>
                 </tr>
               ))}

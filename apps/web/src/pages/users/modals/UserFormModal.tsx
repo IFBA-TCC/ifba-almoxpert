@@ -102,10 +102,10 @@ function CreateUserForm({ onSave }: {
         ) : (
           <div className="w-full">
             <p className="label">Senha</p>
-            <div className="input bg-gray-50 text-gray-400 text-xs flex items-center select-none cursor-default">
+            <div className="input bg-gray-50 text-gray-500 text-xs flex items-center select-none cursor-default">
               ifba.<span className="text-gray-500 font-mono">{watch('registrationNumber') || 'matrícula'}</span>
             </div>
-            <p className="mt-1 text-xs text-gray-400">Gerada automaticamente</p>
+            <p className="mt-1 text-xs text-gray-500">Gerada automaticamente</p>
           </div>
         )}
       </div>
@@ -116,7 +116,7 @@ function CreateUserForm({ onSave }: {
 
       {watchType === 'student' && (
         <div className="space-y-4 border-t border-gray-100 pt-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Dados acadêmicos</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dados acadêmicos</p>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <Input label="Matrícula" placeholder="20221234" {...register('registrationNumber')} />

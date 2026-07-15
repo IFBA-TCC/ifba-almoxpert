@@ -47,11 +47,11 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <main className="min-h-screen bg-gray-50 flex">
       {/* Left panel - Large Screens */}
       <div className="hidden lg:flex w-[420px] bg-gray-900 flex-col justify-content p-10 flex-shrink-0">
         <div className="flex items-center justify-center mb-10">
-          {/* Logo principal unificada e ampliada (ícone + texto do image_0.png) */}
+          {/* Logo principal unificada e ampliada */}
           <img src="/iconeAlmoXpert.png" alt="AlmoxPert Logo" className="h-50 w-auto object-contain justify-center" />
         </div>
 
@@ -60,7 +60,7 @@ export const LoginPage: React.FC = () => {
             Controle de<br />Almoxarifado<br />
             <span className="text-blue-400">Digital</span>
           </h2>
-          <p className="text-white/50 text-sm leading-relaxed max-w-[340px] mb-8">
+          <p className="text-white/70 text-sm leading-relaxed max-w-[340px] mb-8">
             Gerencie estoque, pedidos e remessas de materiais com eficiência e precisão no sistema.
           </p>
         </div>
@@ -72,7 +72,7 @@ export const LoginPage: React.FC = () => {
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <p className="text-white/60 text-xs">
+              <p className="text-white/70 text-xs">
                 <span className="text-white/90 font-medium">{item.label}</span> — {item.desc}
               </p>
             </div>
@@ -83,14 +83,14 @@ export const LoginPage: React.FC = () => {
       {/* Right panel - Form & Mobile Logo */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
-          {/* Mobile logo - Unificada e Centralizada */}
+          {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center mb-2">
             <img src="/logoAlmoXpert.png" alt="AlmoxPert Mobile Logo" className="h-50 w-auto object-contain" />
           </div>
 
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-1">Acesse sua conta</h1>
-            <p className="text-sm text-gray-400">Bem-vindo de volta ao AlmoxPert</p>
+            <p className="text-sm text-gray-600">Bem-vindo de volta ao AlmoxPert</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -114,7 +114,8 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPass(!showPass)}
-                className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600"
+                aria-label={showPass ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-700"
               >
                 {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
@@ -131,17 +132,17 @@ export const LoginPage: React.FC = () => {
             </Button>
 
             <div className="text-center mt-3">
-              <Link to="/forgot-password" className="text-xs text-gray-400 hover:text-blue-600 transition-colors">
+              <Link to="/forgot-password" className="text-xs text-gray-600 hover:text-blue-600 transition-colors">
                 Esqueceu sua senha?
               </Link>
             </div>
           </form>
 
-          <p className="text-center text-xs text-gray-300 mt-12">
+          <p className="text-center text-xs text-gray-500 mt-12">
             IFBA Campus Vitória da Conquista — Serviço Social
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 };

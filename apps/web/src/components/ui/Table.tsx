@@ -54,8 +54,8 @@ export function Table<T>({
           ) : data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="py-16 text-center">
-                <div className="flex flex-col items-center gap-2 text-gray-400">
-                  {emptyIcon && <div className="text-gray-300">{emptyIcon}</div>}
+                <div className="flex flex-col items-center gap-2 text-gray-500">
+                  {emptyIcon && <div className="text-gray-500">{emptyIcon}</div>}
                   <p className="text-sm">{emptyMessage}</p>
                 </div>
               </td>

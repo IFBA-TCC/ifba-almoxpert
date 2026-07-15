@@ -79,18 +79,18 @@ export const DashboardPage: React.FC = () => {
           {/* Recent Orders */}
           <div className="card">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">Pedidos Recentes</h3>
-              <ShoppingCart size={16} className="text-gray-400" />
+              <h2 className="text-sm font-semibold text-gray-900">Pedidos Recentes</h2>
+              <ShoppingCart size={16} className="text-gray-500" />
             </div>
             <div className="divide-y divide-gray-50">
               {ordersData?.data?.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-8">Nenhum pedido.</p>
+                <p className="text-xs text-gray-500 text-center py-8">Nenhum pedido.</p>
               )}
               {ordersData?.data?.slice(0, 6).map((order) => (
                 <div key={order.id} className="px-5 py-3.5 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-800">Pedido #{order.id}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{order.user?.name} — {formatDateTime(order.createdAt)}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{order.user?.name} — {formatDateTime(order.createdAt)}</p>
                   </div>
                   <Badge className={orderStatusColor[order.status]} dot>
                     {orderStatusLabel[order.status]}
@@ -104,7 +104,7 @@ export const DashboardPage: React.FC = () => {
           {isAdmin && (
             <div className="card">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">Movimentações Recentes</h3>
+                <h2 className="text-sm font-semibold text-gray-900">Movimentações Recentes</h2>
                 <div className="flex gap-1">
                   <ArrowDownCircle size={16} className="text-emerald-500" />
                   <ArrowUpCircle   size={16} className="text-red-500"  />
@@ -112,13 +112,13 @@ export const DashboardPage: React.FC = () => {
               </div>
               <div className="divide-y divide-gray-50">
                 {movementsData?.data?.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-8">Nenhuma movimentação.</p>
+                  <p className="text-xs text-gray-500 text-center py-8">Nenhuma movimentação.</p>
                 )}
                 {movementsData?.data?.slice(0, 6).map((mv) => (
                   <div key={mv.id} className="px-5 py-3.5 flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-800">{mv.item?.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-gray-500 mt-0.5">
                         {mv.variation?.description}
                         {mv.size && mv.size !== 'none' && ` (${mv.size})`}
                         {' '}— {mv.quantity} un. — {formatDateTime(mv.movementDate)}

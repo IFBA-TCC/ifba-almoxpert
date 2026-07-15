@@ -73,7 +73,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <p className="text-sm font-semibold">{t.title}</p>
               {t.message && <p className="text-xs mt-0.5 opacity-80">{t.message}</p>}
             </div>
-            <button onClick={() => remove(t.id)} className="flex-shrink-0 opacity-60 hover:opacity-100">
+            <button onClick={() => remove(t.id)} aria-label="Fechar notificação" className="flex-shrink-0 opacity-60 hover:opacity-100">
               <X size={14} />
             </button>
           </div>

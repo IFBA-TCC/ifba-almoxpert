@@ -127,7 +127,7 @@ export const ShipmentsPage: React.FC = () => {
       render: (s: Shipment) => (
         <div>
           <p className="font-medium text-gray-800">{s.responsible?.name}</p>
-          <p className="text-xs text-gray-400">{formatDateTime(s.createdAt)}</p>
+          <p className="text-xs text-gray-500">{formatDateTime(s.createdAt)}</p>
         </div>
       ),
     },
@@ -142,17 +142,17 @@ export const ShipmentsPage: React.FC = () => {
           {s.status === 'open' && (
             <>
               <button title="Editar remessa" onClick={() => openEdit(s)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                 <Pencil size={14} />
               </button>
               <button title="Excluir remessa" onClick={() => setDeleteOpen(s)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
                 <Trash2 size={14} />
               </button>
             </>
           )}
           <button title="Visualizar remessa" onClick={() => setView(s)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">
             <Eye size={14} />
           </button>
         </div>

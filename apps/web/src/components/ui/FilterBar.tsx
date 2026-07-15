@@ -85,7 +85,7 @@ export function FilterBar<T extends object>({
         <label className="text-xs font-medium text-gray-500">{field.label}</label>
         <div className="relative">
           {field.type === 'text' && (
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           )}
           <input
             type={field.type}
@@ -147,7 +147,7 @@ export function FilterBar<T extends object>({
             <button
               type="button"
               onClick={clearAll}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 ml-1"
+              className="text-xs text-gray-500 hover:text-red-500 transition-colors flex items-center gap-1 ml-1"
             >
               <X size={11} />
               Limpar todos

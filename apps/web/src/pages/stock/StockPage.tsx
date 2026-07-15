@@ -64,7 +64,7 @@ export const StockPage: React.FC = () => {
       render: (e: StockEntry) => (
         <div>
           <p className="font-medium text-gray-800">{e.item?.name}</p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-500">
             {e.item?.hasVariations && e.variation?.description ? e.variation.description : 'Sem variação'}
           </p>
         </div>
@@ -74,7 +74,7 @@ export const StockPage: React.FC = () => {
       key: 'size', header: 'Tamanho',
       render: (e: StockEntry) => (
         <span className="text-sm text-gray-600">
-          {e.size === 'none' ? <span className="text-gray-300">—</span> : e.size}
+          {e.size === 'none' ? <span className="text-gray-500">—</span> : e.size}
         </span>
       ),
     },
@@ -83,7 +83,7 @@ export const StockPage: React.FC = () => {
       render: (e: StockEntry) => (
         <span className={`font-semibold font-mono text-sm ${isLow(e) ? 'text-red-500' : 'text-gray-800'}`}>
           {e.availableQuantity}{' '}
-          <span className="font-normal text-xs text-gray-400">
+          <span className="font-normal text-xs text-gray-500">
             {unitLabel[e.item?.unitOfMeasure] ?? e.item?.unitOfMeasure}
           </span>
         </span>
@@ -106,7 +106,8 @@ export const StockPage: React.FC = () => {
       render: (e: StockEntry) => (
         <button
           onClick={() => setEditEntry(e)}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-auto"
+          aria-label="Ajustar estoque"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-auto"
         >
           <Settings2 size={14} />
         </button>

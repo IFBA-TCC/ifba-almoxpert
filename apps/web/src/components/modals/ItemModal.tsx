@@ -238,19 +238,19 @@ export const ItemModal: React.FC<ItemModalProps> = ({
 
             {/* Lista de variações existentes */}
             {(item?.variations?.length ?? 0) === 0 && (
-              <p className="text-xs text-gray-400 text-center py-2">Nenhuma variação cadastrada.</p>
+              <p className="text-xs text-gray-500 text-center py-2">Nenhuma variação cadastrada.</p>
             )}
             <div className="space-y-1.5">
               {item?.variations?.map((v) => (
                 <div key={v.id} className="flex items-center justify-between gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-                  <span className={`text-sm font-medium flex-1 ${v.isActive ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
+                  <span className={`text-sm font-medium flex-1 ${v.isActive ? 'text-gray-700' : 'text-gray-500 line-through'}`}>
                     {v.description}
                   </span>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Toggle switch */}
                     {onToggleVariation && (
                       <>
-                        <span className={`text-xs ${v.isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
+                        <span className={`text-xs ${v.isActive ? 'text-emerald-600' : 'text-gray-500'}`}>
                           {v.isActive ? 'Ativa' : 'Inativa'}
                         </span>
                         <button
@@ -273,7 +273,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
                         type="button"
                         title="Excluir variação (somente se nunca entrou em estoque)"
                         onClick={() => onDeleteVariation(v.id)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500Bg transition-colors"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-500Bg transition-colors"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -311,7 +311,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         {/* ── Item sem variações (edição): explica por que não pode adicionar ── */}
         {isEditing && !hasVariations && (
           <div className="flex items-start gap-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-            <Info size={14} className="mt-0.5 flex-shrink-0 text-gray-400" />
+            <Info size={14} className="mt-0.5 flex-shrink-0 text-gray-500" />
             <span>
               Este item foi criado <span className="font-semibold">sem variações</span>, então não é possível adicioná-las aqui — isso mudaria a chave de estoque e deixaria o estoque atual órfão. Para usar variações, cadastre um novo item marcando <span className="font-semibold">“Possui Variações: Sim”</span>.
             </span>
@@ -334,7 +334,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               </Button>
             </div>
             {fields.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-2">Nenhuma variação adicionada.</p>
+              <p className="text-xs text-gray-500 text-center py-2">Nenhuma variação adicionada.</p>
             )}
             {fields.map((field, idx) => (
               <div key={field.id} className="flex items-start gap-2">

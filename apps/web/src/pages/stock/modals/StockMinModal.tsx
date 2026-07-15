@@ -46,12 +46,12 @@ export const StockMinModal: React.FC<StockMinModalProps> = ({ entry, onClose, on
       >
         <div className="flex gap-4 p-3 bg-gray-50 rounded-xl text-sm">
           <div>
-            <p className="text-xs text-gray-400">Atual</p>
+            <p className="text-xs text-gray-500">Atual</p>
             <p className="font-bold text-gray-800">{entry?.availableQuantity} un.</p>
           </div>
           <div className="w-px bg-gray-200" />
           <div>
-            <p className="text-xs text-gray-400">Mínimo atual</p>
+            <p className="text-xs text-gray-500">Mínimo atual</p>
             <p className="font-bold text-gray-800">{entry?.minimumQuantity} un.</p>
           </div>
         </div>

@@ -30,25 +30,25 @@ const itemsFetchFn = async ({ search, pageIndex, pageSize }: { search: string; p
 function StudentInfoPanel({ profile }: { profile: StudentProfile }) {
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Dados do Aluno</p>
+      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Dados do Aluno</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
         {profile.registrationNumber && (
-          <div><span className="text-gray-400 block">Matrícula</span><span className="font-mono font-medium text-gray-700">{profile.registrationNumber}</span></div>
+          <div><span className="text-gray-500 block">Matrícula</span><span className="font-mono font-medium text-gray-700">{profile.registrationNumber}</span></div>
         )}
         {profile.campus && (
-          <div><span className="text-gray-400 block">Campus</span><span className="font-medium text-gray-700">{profile.campus}</span></div>
+          <div><span className="text-gray-500 block">Campus</span><span className="font-medium text-gray-700">{profile.campus}</span></div>
         )}
         {profile.educationLevel && (
-          <div><span className="text-gray-400 block">Nível</span><span className="font-medium text-gray-700">{profile.educationLevel}</span></div>
+          <div><span className="text-gray-500 block">Nível</span><span className="font-medium text-gray-700">{profile.educationLevel}</span></div>
         )}
         {profile.course && (
-          <div className="col-span-2 sm:col-span-3"><span className="text-gray-400 block">Curso</span><span className="font-medium text-gray-700">{profile.course}</span></div>
+          <div className="col-span-2 sm:col-span-3"><span className="text-gray-500 block">Curso</span><span className="font-medium text-gray-700">{profile.course}</span></div>
         )}
         {profile.modality && (
-          <div><span className="text-gray-400 block">Modalidade</span><span className="font-medium text-gray-700">{profile.modality}</span></div>
+          <div><span className="text-gray-500 block">Modalidade</span><span className="font-medium text-gray-700">{profile.modality}</span></div>
         )}
         {profile.mealTypes && (
-          <div><span className="text-gray-400 block">Refeição</span><span className="font-medium text-gray-700">{profile.mealTypes}</span></div>
+          <div><span className="text-gray-500 block">Refeição</span><span className="font-medium text-gray-700">{profile.mealTypes}</span></div>
         )}
       </div>
       {profile.aids?.length ? (
@@ -198,8 +198,8 @@ export const OrderViewModal: React.FC<OrderViewModalProps> = ({
                     {reviewLines.map((line, idx) => (
                       <tr key={line.orderItemId} className={!line.approved ? 'opacity-40' : ''}>
                         <td className="table-cell text-sm">{line.itemName}</td>
-                        <td className="table-cell text-gray-400 text-xs">{line.variationName || '—'}</td>
-                        <td className="table-cell text-center text-gray-400 text-xs">{line.size === 'none' ? '—' : line.size}</td>
+                        <td className="table-cell text-gray-500 text-xs">{line.variationName || '—'}</td>
+                        <td className="table-cell text-center text-gray-500 text-xs">{line.size === 'none' ? '—' : line.size}</td>
                         <td className="table-cell text-right font-mono text-sm">{line.requestedQuantity}</td>
                         <td className="table-cell text-right">
                           <input
@@ -231,10 +231,10 @@ export const OrderViewModal: React.FC<OrderViewModalProps> = ({
                 <div className="border border-blue-100 bg-blue-50/40 rounded-xl p-3 space-y-2">
                   <p className="text-xs font-semibold text-blue-600 mb-1">Itens adicionados pelo administrador</p>
                   <div className="grid grid-cols-12 gap-2 px-0.5">
-                    <p className="col-span-4 text-xs text-gray-400">Item</p>
-                    <p className="col-span-3 text-xs text-gray-400">Variação</p>
-                    <p className="col-span-2 text-xs text-gray-400">Tamanho</p>
-                    <p className="col-span-2 text-xs text-gray-400">Qtd.</p>
+                    <p className="col-span-4 text-xs text-gray-500">Item</p>
+                    <p className="col-span-3 text-xs text-gray-500">Variação</p>
+                    <p className="col-span-2 text-xs text-gray-500">Tamanho</p>
+                    <p className="col-span-2 text-xs text-gray-500">Qtd.</p>
                     <div className="col-span-1" />
                   </div>
                   {addLines.map((line, idx) => {
@@ -259,7 +259,7 @@ export const OrderViewModal: React.FC<OrderViewModalProps> = ({
                               onChange={(val) => setAddLines((p) => p.map((l, i) => i === idx ? { ...l, variationId: val } : l))}
                             />
                           ) : (
-                            <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">{selItem ? 'Sem variação' : '—'}</div>
+                            <div className="h-[42px] flex items-center px-3 text-xs text-gray-500 bg-gray-50 rounded-xl border border-gray-200">{selItem ? 'Sem variação' : '—'}</div>
                           )}
                         </div>
                         <div className="col-span-2">
@@ -269,7 +269,7 @@ export const OrderViewModal: React.FC<OrderViewModalProps> = ({
                               onChange={(val) => setAddLines((p) => p.map((l, i) => i === idx ? { ...l, size: val } : l))}
                             />
                           ) : (
-                            <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">{selItem ? 'Sem tam.' : '—'}</div>
+                            <div className="h-[42px] flex items-center px-3 text-xs text-gray-500 bg-gray-50 rounded-xl border border-gray-200">{selItem ? 'Sem tam.' : '—'}</div>
                           )}
                         </div>
                         <div className="col-span-2">
@@ -321,15 +321,15 @@ export const OrderViewModal: React.FC<OrderViewModalProps> = ({
                   {order.items?.map((item) => (
                     <tr key={item.id}>
                       <td className="table-cell">{item.item?.name}</td>
-                      <td className="table-cell text-gray-400">{item.variation?.description ?? '—'}</td>
-                      <td className="table-cell text-gray-400">{item.size === 'none' ? '—' : item.size}</td>
+                      <td className="table-cell text-gray-500">{item.variation?.description ?? '—'}</td>
+                      <td className="table-cell text-gray-500">{item.size === 'none' ? '—' : item.size}</td>
                       <td className="table-cell text-right font-mono">{item.requestedQuantity || '—'}</td>
                       <td className="table-cell text-right font-mono">
                         {item.approvedQuantity != null
                           ? item.approvedQuantity === 0
                             ? <span className="text-red-400 text-xs">Não aprovado</span>
                             : item.approvedQuantity
-                          : <span className="text-gray-300">—</span>
+                          : <span className="text-gray-500">—</span>
                         }
                       </td>
                     </tr>

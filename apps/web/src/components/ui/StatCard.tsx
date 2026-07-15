@@ -29,7 +29,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color = 
       </div>
       <div>
         <p className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Syne, sans-serif' }}>{value}</p>
-        {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );

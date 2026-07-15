@@ -82,7 +82,7 @@ export const MovementsPage: React.FC = () => {
       render: (mv: Movement) => (
         <div>
           <p className="font-medium text-gray-800">{mv.item?.name}</p>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-500">
             {mv.variation?.description ?? '—'}
             {mv.size && mv.size !== 'none' && (
               <span className="ml-1 font-semibold text-blue-500">{mv.size}</span>

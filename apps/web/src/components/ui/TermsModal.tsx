@@ -31,7 +31,7 @@ export const TermsModal: React.FC = () => {
           </div>
           <div>
             <h2 className="text-base font-bold text-gray-900">Termos de Uso e Política de Privacidade</h2>
-            <p className="text-xs text-gray-400">AlmoxPert — Sistema de Gestão do Almoxarifado · IFBA</p>
+            <p className="text-xs text-gray-500">AlmoxPert — Sistema de Gestão do Almoxarifado · IFBA</p>
           </div>
         </div>
 

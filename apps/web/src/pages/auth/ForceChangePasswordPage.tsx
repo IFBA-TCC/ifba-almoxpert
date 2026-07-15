@@ -59,7 +59,7 @@ export const ForceChangePasswordPage: React.FC = () => {
 
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Defina sua nova senha</h1>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-500">
             Por segurança, você precisa criar uma nova senha antes de continuar.
           </p>
         </div>
@@ -84,7 +84,7 @@ export const ForceChangePasswordPage: React.FC = () => {
               {...register('currentPassword')}
             />
             <button type="button" onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+              className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
               {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
@@ -99,7 +99,7 @@ export const ForceChangePasswordPage: React.FC = () => {
               {...register('newPassword')}
             />
             <button type="button" onClick={() => setShowNew(!showNew)}
-              className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+              className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
               {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
@@ -114,7 +114,7 @@ export const ForceChangePasswordPage: React.FC = () => {
               {...register('confirmPassword')}
             />
             <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+              className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
               {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>

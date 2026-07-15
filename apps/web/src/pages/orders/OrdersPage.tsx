@@ -105,7 +105,7 @@ export const OrdersPage: React.FC = () => {
       render: (o: Order) => (
         <div>
           <p className="font-medium text-gray-800">{o.user?.name}</p>
-          <p className="text-xs text-gray-400">{formatDateTime(o.createdAt)}</p>
+          <p className="text-xs text-gray-500">{formatDateTime(o.createdAt)}</p>
         </div>
       ),
     },
@@ -115,8 +115,8 @@ export const OrdersPage: React.FC = () => {
       render: (o: Order) => <Badge className={orderStatusColor[o.status]} dot>{orderStatusLabel[o.status]}</Badge> },
     { key: 'actions', header: '',
       render: (o: Order) => (
-        <button onClick={() => setViewOrder(o)}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-auto">
+        <button onClick={() => setViewOrder(o)} aria-label="Visualizar pedido"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors ml-auto">
           <Eye size={14} />
         </button>
       ),

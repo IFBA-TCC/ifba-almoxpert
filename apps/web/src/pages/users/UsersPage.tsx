@@ -116,7 +116,7 @@ export const UsersPage: React.FC = () => {
           </div>
           <div>
             <p className="font-medium text-gray-800">{u.name}</p>
-            <p className="text-xs text-gray-400">{u.email}</p>
+            <p className="text-xs text-gray-500">{u.email}</p>
           </div>
         </div>
       ),
@@ -134,13 +134,13 @@ export const UsersPage: React.FC = () => {
         : (
           <div>
             <p className="text-xs font-mono text-gray-500">{u.studentProfile?.registrationNumber ?? '—'}</p>
-            <p className="text-xs text-gray-400">{u.studentProfile?.course ?? '—'}</p>
+            <p className="text-xs text-gray-500">{u.studentProfile?.course ?? '—'}</p>
           </div>
         ),
     },
     {
       key: 'createdAt', header: 'Desde',
-      render: (u: User) => <span className="text-xs text-gray-400">{formatDate(u.createdAt)}</span>,
+      render: (u: User) => <span className="text-xs text-gray-500">{formatDate(u.createdAt)}</span>,
     },
     {
       key: 'isActive', header: 'Status',
@@ -152,22 +152,22 @@ export const UsersPage: React.FC = () => {
       key: 'receiveEmails', header: 'E-mails',
       render: (u: User) => u.receiveEmails
         ? <span title="Recebendo e-mails" className="flex items-center gap-1 text-xs text-emerald-600"><Mail size={13} /> Ativo</span>
-        : <span title="E-mails desativados" className="flex items-center gap-1 text-xs text-gray-400"><MailX size={13} /> Inativo</span>,
+        : <span title="E-mails desativados" className="flex items-center gap-1 text-xs text-gray-500"><MailX size={13} /> Inativo</span>,
     },
     {
       key: 'actions', header: '',
       render: (u: User) => (
         <div className="flex items-center gap-1 justify-end">
           <button onClick={() => setEditUserId(Number(u.id))} title="Editar"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors">
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-blue-50 transition-colors">
             <Pencil size={14} />
           </button>
           <button onClick={() => setResetPasswordUser(u)} title="Resetar senha"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-colors">
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-amber-500 hover:bg-amber-50 transition-colors">
             <KeyRound size={14} />
           </button>
           <button onClick={() => setDeleteUser(u)} title="Remover"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors">
             <Trash2 size={14} />
           </button>
         </div>

@@ -39,7 +39,7 @@ const StepIndicator: React.FC<{ current: number }> = ({ current }) => (
     {[1, 2, 3].map((n) => (
       <React.Fragment key={n}>
         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors
-          ${current === n ? 'bg-blue-600 text-white' : current > n ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+          ${current === n ? 'bg-blue-600 text-white' : current > n ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
           {current > n ? <CheckCircle size={14} /> : n}
         </div>
         {n < 3 && (
@@ -52,7 +52,7 @@ const StepIndicator: React.FC<{ current: number }> = ({ current }) => (
 
 // ── Criterion ─────────────────────────────────────────────────────────────────
 const Criterion: React.FC<{ ok: boolean; label: string }> = ({ ok, label }) => (
-  <li className={`flex items-center gap-1.5 ${ok ? 'text-green-600' : 'text-gray-400'}`}>
+  <li className={`flex items-center gap-1.5 ${ok ? 'text-green-600' : 'text-gray-500'}`}>
     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${ok ? 'bg-green-500' : 'bg-gray-300'}`} />
     {label}
   </li>
@@ -135,7 +135,7 @@ export const ForgotPasswordPage: React.FC = () => {
           <>
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">Esqueceu sua senha?</h1>
-              <p className="text-sm text-gray-400">Informe seu e-mail e enviaremos um código de verificação.</p>
+              <p className="text-sm text-gray-500">Informe seu e-mail e enviaremos um código de verificação.</p>
             </div>
 
             <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
@@ -161,7 +161,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
             <Link
               to="/login"
-              className="flex items-center justify-center gap-1.5 mt-6 text-sm text-gray-400 hover:text-gray-700 transition-colors"
+              className="flex items-center justify-center gap-1.5 mt-6 text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               <ArrowLeft size={14} />
               Voltar ao login
@@ -174,7 +174,7 @@ export const ForgotPasswordPage: React.FC = () => {
           <>
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">Confirmar código</h1>
-              <p className="text-sm text-gray-400">Insira o código de 6 dígitos enviado para o seu e-mail.</p>
+              <p className="text-sm text-gray-500">Insira o código de 6 dígitos enviado para o seu e-mail.</p>
             </div>
 
             <div className="flex items-center gap-2.5 px-4 py-3 mb-5 rounded-xl bg-blue-50 border border-blue-100">
@@ -206,7 +206,7 @@ export const ForgotPasswordPage: React.FC = () => {
               </Button>
             </form>
 
-            <p className="text-center text-xs text-gray-400 mt-4">
+            <p className="text-center text-xs text-gray-500 mt-4">
               Não recebeu?{' '}
               <button
                 type="button"
@@ -224,7 +224,7 @@ export const ForgotPasswordPage: React.FC = () => {
           <>
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">Nova senha</h1>
-              <p className="text-sm text-gray-400">Crie uma senha segura para sua conta.</p>
+              <p className="text-sm text-gray-500">Crie uma senha segura para sua conta.</p>
             </div>
 
             <div className="mb-5 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
@@ -248,7 +248,7 @@ export const ForgotPasswordPage: React.FC = () => {
                   {...passForm.register('newPassword')}
                 />
                 <button type="button" onClick={() => setShowNew(!showNew)}
-                  className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+                  className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
                   {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
@@ -263,7 +263,7 @@ export const ForgotPasswordPage: React.FC = () => {
                   {...passForm.register('confirmPassword')}
                 />
                 <button type="button" onClick={() => setShowConf(!showConf)}
-                  className="absolute right-3.5 top-9 text-gray-400 hover:text-gray-600">
+                  className="absolute right-3.5 top-9 text-gray-500 hover:text-gray-600">
                   {showConf ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
@@ -286,7 +286,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
             <button
               onClick={() => { setStep(2); setApiError(''); }}
-              className="flex items-center justify-center gap-1.5 mt-6 w-full text-sm text-gray-400 hover:text-gray-700 transition-colors"
+              className="flex items-center justify-center gap-1.5 mt-6 w-full text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               <ArrowLeft size={14} />
               Voltar e inserir outro código

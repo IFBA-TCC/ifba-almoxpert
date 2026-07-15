@@ -130,7 +130,7 @@ function ShipmentFormLines({
                   )}
                 />
               ) : (
-                <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="h-[42px] flex items-center px-3 text-xs text-gray-500 bg-gray-50 rounded-xl border border-gray-200">
                   {selItem ? 'Sem variação' : '—'}
                 </div>
               )}
@@ -154,7 +154,7 @@ function ShipmentFormLines({
                   )}
                 />
               ) : (
-                <div className="h-[42px] flex items-center px-3 text-xs text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="h-[42px] flex items-center px-3 text-xs text-gray-500 bg-gray-50 rounded-xl border border-gray-200">
                   {selItem ? 'Sem tam.' : '—'}
                 </div>
               )}

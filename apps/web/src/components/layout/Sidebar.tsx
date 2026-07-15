@@ -106,6 +106,7 @@ const SidebarContent: React.FC<SidebarContentProps> = ({
       )}
       <button
         onClick={onLogout}
+        aria-label="Sair do sistema"
         title={collapsed ? 'Sair' : undefined}
         className={cn(
           'sidebar-item sidebar-item-inactive w-full text-red-400/80 hover:text-red-400 hover:bg-red-500/10',
@@ -167,6 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) =
         <SidebarContent {...contentProps} />
         <button
           onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
           className="absolute -right-3 top-[78px] w-6 h-6 rounded-full bg-gray-900 border border-gray-700 text-white flex items-center justify-center shadow-md hover:bg-blue-600 transition-colors z-10"
         >
           {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
@@ -180,6 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onMobileClose }) =
           <aside className="relative w-64 bg-gray-900 flex flex-col animate-slide-in z-50">
             <button
               onClick={onMobileClose}
+              aria-label="Fechar menu"
               className="absolute top-4 right-4 text-white/60 hover:text-white"
             >
               <X size={18} />

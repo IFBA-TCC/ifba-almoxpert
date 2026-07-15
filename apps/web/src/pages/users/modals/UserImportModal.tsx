@@ -102,11 +102,11 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({ open, onClose 
                   'w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all',
                   n < stepNum  ? 'bg-blue-600 border-blue-600 text-white' :
                   n === stepNum ? 'border-blue-500 text-blue-600 bg-blue-50' :
-                                   'border-gray-200 text-gray-300 bg-white',
+                                   'border-gray-200 text-gray-500 bg-white',
                 ].join(' ')}>
                   {n < stepNum ? <CheckCircle2 size={14} /> : n}
                 </div>
-                <span className={`text-[10px] font-medium ${n <= stepNum ? 'text-blue-600' : 'text-gray-300'}`}>{label}</span>
+                <span className={`text-[10px] font-medium ${n <= stepNum ? 'text-blue-600' : 'text-gray-500'}`}>{label}</span>
               </div>
               {i < 2 && (
                 <div className={`h-0.5 flex-1 mb-5 mx-2 transition-all ${n < stepNum ? 'bg-blue-600' : 'bg-gray-200'}`} />
@@ -118,7 +118,7 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({ open, onClose 
         {/* Etapa 1 */}
         {stepNum === 1 && (
           <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl py-12 gap-3">
-            <Upload size={36} className={step === 'validating' ? 'text-blue-400 animate-bounce' : 'text-gray-300'} />
+            <Upload size={36} className={step === 'validating' ? 'text-blue-400 animate-bounce' : 'text-gray-500'} />
             <p className="text-sm text-gray-500">
               Selecione o arquivo <span className="font-semibold">.xlsx</span> ou <span className="font-semibold">.xls</span>
             </p>
@@ -138,17 +138,17 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({ open, onClose 
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-gray-50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold text-gray-800">{validationResult.totalRows}</p>
-                <p className="text-xs text-gray-400 mt-0.5">Total de linhas</p>
+                <p className="text-xs text-gray-500 mt-0.5">Total de linhas</p>
               </div>
               <div className="bg-emerald-50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold text-emerald-600">{validationResult.validRows}</p>
-                <p className="text-xs text-gray-400 mt-0.5">Válidas</p>
+                <p className="text-xs text-gray-500 mt-0.5">Válidas</p>
               </div>
               <div className={`${validationResult.errorRows > 0 ? 'bg-red-50' : 'bg-emerald-50'} rounded-xl p-3 text-center`}>
                 <p className={`text-2xl font-bold ${validationResult.errorRows > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
                   {validationResult.errorRows}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">Com erros</p>
+                <p className="text-xs text-gray-500 mt-0.5">Com erros</p>
               </div>
             </div>
 
@@ -177,7 +177,7 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({ open, onClose 
                   <tbody className="divide-y divide-red-50">
                     {validationResult.errors.map((err, i) => (
                       <tr key={i} className="bg-white">
-                        <td className="table-cell font-mono text-gray-400">{err.row}</td>
+                        <td className="table-cell font-mono text-gray-500">{err.row}</td>
                         <td className="table-cell font-medium text-gray-600">{err.field}</td>
                         <td className="table-cell text-red-500">{err.message}</td>
                       </tr>
@@ -196,7 +196,7 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({ open, onClose 
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Upload size={36} className="text-blue-400 animate-bounce" />
                 <p className="text-sm text-gray-500 font-medium">Importando alunos, aguarde...</p>
-                <p className="text-xs text-gray-400">Isso pode levar alguns instantes</p>
+                <p className="text-xs text-gray-500">Isso pode levar alguns instantes</p>
               </div>
             )}
 
@@ -205,17 +205,17 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({ open, onClose 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-emerald-50 rounded-xl p-3 text-center">
                     <p className="text-2xl font-bold text-emerald-600">{importResult.created}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Criados</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Criados</p>
                   </div>
                   <div className="bg-gray-50 rounded-xl p-3 text-center">
                     <p className="text-2xl font-bold text-gray-500">{importResult.skipped}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Já existiam</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Já existiam</p>
                   </div>
                   <div className={`${importResult.errors.length > 0 ? 'bg-red-50' : 'bg-emerald-50'} rounded-xl p-3 text-center`}>
                     <p className={`text-2xl font-bold ${importResult.errors.length > 0 ? 'text-red-500' : 'text-emerald-600'}`}>
                       {importResult.errors.length}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">Falhas</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Falhas</p>
                   </div>
                 </div>
 
@@ -236,7 +236,7 @@ export const UserImportModal: React.FC<UserImportModalProps> = ({ open, onClose 
                       <tbody className="divide-y divide-red-50">
                         {importResult.errors.map((err, i) => (
                           <tr key={i} className="bg-white">
-                            <td className="table-cell font-mono text-gray-400">{err.row}</td>
+                            <td className="table-cell font-mono text-gray-500">{err.row}</td>
                             <td className="table-cell text-red-500">{err.message}</td>
                           </tr>
                         ))}
